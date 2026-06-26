@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-tags: true # trae el objeto del tag anotado (para leer su mensaje)
 
       # Verifica que el tag coincida con la versión del manifest (evita
       # publicar un zip cuya versión no matchea el tag).
@@ -37,8 +39,22 @@ jobs:
           echo "ZIP=$ZIP" >> "$GITHUB_ENV"
           unzip -l "$ZIP"
 
+      # Usa el mensaje del tag anotado como cuerpo del release. Si el tag es
+      # liviano (sin mensaje), cae a las notas autogeneradas.
+      - name: Extract tag message
+        id: notes
+        run: |
+          BODY=$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")
+          if [ -n "$BODY" ]; then
+            echo "$BODY" > RELEASE_NOTES.md
+            echo "has_body=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_body=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Create release with zip
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ env.ZIP }}
-          generate_release_notes: true
+          body_path: ${{ steps.notes.outputs.has_body == 'true' && 'RELEASE_NOTES.md' || '' }}
+          generate_release_notes: ${{ steps.notes.outputs.has_body != 'true' }}
