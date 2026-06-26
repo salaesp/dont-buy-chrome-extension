@@ -1,24 +1,23 @@
 name: Release
 
-# Empaqueta la extensión y la adjunta como asset del Release.
-# Disparo: publicación de un Release en GitHub (cuyo tag sea vX.Y.Z, idealmente
-# coincidiendo con manifest.version).
+# Empaqueta la extensión y la adjunta como artifact de un Release.
+# Disparo: push de un tag vX.Y.Z (ideal: que coincida con manifest.version).
 on:
-  release:
-    types: [published]
+  push:
+    tags:
+      - "v*"
 
 permissions:
-  contents: write # subir el asset al release
+  contents: write # crear el release y subir el asset
 
 jobs:
   package:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.release.tag_name }}
 
-      # Verifica que el tag del release coincida con la versión del manifest.
+      # Verifica que el tag coincida con la versión del manifest (evita
+      # publicar un zip cuya versión no matchea el tag).
       - name: Check tag matches manifest version
         run: |
           TAG="${GITHUB_REF_NAME#v}"
@@ -38,9 +37,8 @@ jobs:
           echo "ZIP=$ZIP" >> "$GITHUB_ENV"
           unzip -l "$ZIP"
 
-      # Adjunta el zip al release que disparó el workflow.
-      - name: Upload zip to release
+      - name: Create release with zip
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.release.tag_name }}
           files: ${{ env.ZIP }}
+          generate_release_notes: true
