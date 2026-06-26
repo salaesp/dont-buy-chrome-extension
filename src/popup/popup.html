@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="popup.css" />
+    <title>Don't Buy</title>
+  </head>
+  <body>
+    <header>
+      <span class="logo">🛑</span>
+      <h1>Don't Buy</h1>
+    </header>
+
+    <section class="toggle-row">
+      <span>Avisos activados</span>
+      <label class="switch">
+        <input type="checkbox" id="enabled" />
+        <span class="slider"></span>
+      </label>
+    </section>
+
+    <section class="stats">
+      <div class="stat">
+        <strong id="block-count">0</strong>
+        <span>No necesito</span>
+      </div>
+      <div class="stat">
+        <strong id="allow-count">0</strong>
+        <span>Sí necesito</span>
+      </div>
+      <div class="stat">
+        <strong id="blocked-total">0</strong>
+        <span>Frenos</span>
+      </div>
+    </section>
+
+    <footer>
+      <button id="open-options" class="link">Gestionar mis listas →</button>
+    </footer>
+
+    <script src="popup.js"></script>
+  </body>
+</html>

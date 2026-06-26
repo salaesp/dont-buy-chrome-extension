@@ -1,0 +1,39 @@
+{
+  "manifest_version": 3,
+  "name": "Don't Buy — freno a compras impulsivas",
+  "version": "0.1.0",
+  "description": "Detecta cuando estás viendo un producto y te avisa que quizá no lo necesitás. Sincroniza tu lista entre navegadores con tu cuenta.",
+  "default_locale": "es",
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "src/background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": [
+        "src/lib/product.js",
+        "src/content/sites.js",
+        "src/content/detector.js",
+        "src/content/banner.js",
+        "src/content/matcher.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_title": "Don't Buy",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "options_page": "src/options/options.html",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
