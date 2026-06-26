@@ -198,8 +198,15 @@
 
   /** Corre las fuentes en orden de fiabilidad y devuelve una firma o null. */
   function detect() {
+    // Reglas por tienda (Amazon/eBay/MercadoLibre) primero; si no aplican,
+    // caemos a las fuentes genéricas.
+    const sites = global.DontBuySites;
     const raw =
-      fromJsonLd() || fromOpenGraph() || fromMicrodata() || fromHeuristics();
+      (sites && sites.detect()) ||
+      fromJsonLd() ||
+      fromOpenGraph() ||
+      fromMicrodata() ||
+      fromHeuristics();
     if (!raw || !raw.title) return null;
     const signature = Product.buildSignature({
       ...raw,

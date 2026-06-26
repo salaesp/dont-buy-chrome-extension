@@ -13,6 +13,7 @@
       "matches": ["http://*/*", "https://*/*"],
       "js": [
         "src/lib/product.js",
+        "src/content/sites.js",
         "src/content/detector.js",
         "src/content/banner.js",
         "src/content/matcher.js"

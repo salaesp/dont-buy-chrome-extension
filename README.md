@@ -8,8 +8,10 @@ banner y te pregunta si realmente lo necesitás. Tu decisión se guarda y se
 ## Cómo funciona
 
 1. Un *content script* corre en cada página y detecta si estás viendo un
-   producto (lee marcado estándar: JSON-LD `schema.org/Product`, OpenGraph,
-   microdata, y como respaldo precio + botón de compra).
+   producto. Primero aplica **reglas a medida para Amazon, eBay y
+   MercadoLibre** (más fiables); si no estás en una de esas tiendas, cae a
+   detección genérica con marcado estándar (JSON-LD `schema.org/Product`,
+   OpenGraph, microdata, y como respaldo precio + botón de compra).
 2. Compara el producto contra tus listas:
    - **No está marcado** → banner suave: *"¿Seguro que lo necesitás?"*
    - **Ya dijiste que no lo necesitás** (mismo producto o misma familia) →
@@ -43,7 +45,8 @@ donde inicies sesión con la misma cuenta. Sin servidor propio, sin login extra.
 manifest.json                 Configuración MV3
 src/lib/product.js            Lógica pura: normalización, claves, matching de familias
 src/lib/storage.js            Acceso a chrome.storage.sync (solo service worker)
-src/content/detector.js       Detección de producto + extracción de firma
+src/content/sites.js          Reglas a medida: Amazon, eBay, MercadoLibre
+src/content/detector.js       Detección genérica + extracción de firma
 src/content/banner.js         Banner del aviso (Shadow DOM)
 src/content/matcher.js        Orquestación del content script
 src/background/service-worker.js  Mensajería + persistencia + badge
@@ -67,9 +70,10 @@ claves, matching por familia y la resolución allow/block/unknown).
 - **Móvil**: Chrome para Android no soporta extensiones, así que esto solo
   funciona en escritorio. (Navegadores como Kiwi/Edge mobile podrían ser una
   alternativa futura.)
-- La detección es heurística: puede no reconocer tiendas con marcado muy poco
-  estándar, o disparar en páginas que no son fichas de producto. Se puede
-  afinar agregando selectores por sitio.
+- Hay selectores a medida para **Amazon, eBay y MercadoLibre**; el resto de
+  las tiendas usa detección heurística, que puede no reconocer marcado muy
+  poco estándar o disparar en páginas que no son fichas de producto. Para
+  sumar otra tienda, agregá una regla en `src/content/sites.js`.
 
 ## Próximos pasos (fuera del MVP)
 
