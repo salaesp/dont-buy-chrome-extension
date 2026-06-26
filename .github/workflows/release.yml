@@ -1,0 +1,44 @@
+name: Release
+
+# Empaqueta la extensión y la adjunta como artifact de un Release.
+# Disparo: push de un tag vX.Y.Z (ideal: que coincida con manifest.version).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write # crear el release y subir el asset
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Verifica que el tag coincida con la versión del manifest (evita
+      # publicar un zip cuya versión no matchea el tag).
+      - name: Check tag matches manifest version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          MANIFEST=$(node -p "require('./manifest.json').version")
+          echo "tag=$TAG manifest=$MANIFEST"
+          if [ "$TAG" != "$MANIFEST" ]; then
+            echo "::error::Tag ($TAG) no coincide con manifest.version ($MANIFEST)"
+            exit 1
+          fi
+
+      # Solo los archivos que corren en el navegador (manifest en la raíz del
+      # zip, como exige Chrome Web Store).
+      - name: Build zip
+        run: |
+          ZIP="dont-buy-${GITHUB_REF_NAME}.zip"
+          zip -r "$ZIP" manifest.json _locales icons src
+          echo "ZIP=$ZIP" >> "$GITHUB_ENV"
+          unzip -l "$ZIP"
+
+      - name: Create release with zip
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP }}
+          generate_release_notes: true
