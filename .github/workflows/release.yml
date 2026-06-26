@@ -48,8 +48,9 @@ jobs:
             --format='%(contents)' > RELEASE_NOTES.md
           echo "----- notes -----"; cat RELEASE_NOTES.md
 
-      # gh crea o EDITA el release (softprops no sobreescribe el body de uno
-      # existente). Adjunta el zip con --clobber. Usa el GITHUB_TOKEN del runner.
+      # Borra el release si ya existe (conservando el tag git) y lo recrea
+      # fresco, así el body siempre refleja la anotación del tag. --verify-tag
+      # exige que el tag exista (evita drafts "untagged").
       - name: Publish release with zip
         env:
           GH_TOKEN: ${{ github.token }}
@@ -59,9 +60,5 @@ jobs:
           else
             NOTES=(--generate-notes)
           fi
-          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release edit "$GITHUB_REF_NAME" "${NOTES[@]}"
-            gh release upload "$GITHUB_REF_NAME" "$ZIP" --clobber
-          else
-            gh release create "$GITHUB_REF_NAME" "$ZIP" "${NOTES[@]}"
-          fi
+          gh release delete "$GITHUB_REF_NAME" --yes --cleanup-tag=false 2>/dev/null || true
+          gh release create "$GITHUB_REF_NAME" "$ZIP" --verify-tag "${NOTES[@]}"
