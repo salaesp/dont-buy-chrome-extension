@@ -174,12 +174,16 @@
 
   // ---- Steam ----------------------------------------------------------------
   // Steam muestra precios y botones "Add to Cart" en casi toda la tienda (home,
-  // listados, tags, wishlist, descubrimiento). Por eso SOLO tratamos como ficha
-  // las páginas de juego/DLC (/app/<id>/). El resto devuelve null y, al ser
-  // tienda conocida, el detector genérico no adivina ahí.
+  // listados, tags, wishlist, descubrimiento) y la comunidad (perfiles con
+  // saldo de billetera, hubs, market). Por eso cubrimos ambos hosts como
+  // "tienda conocida" para apagar el detector genérico, pero SOLO tratamos como
+  // ficha las páginas de juego/DLC de la TIENDA (/app/<id>/ en steampowered).
+  // Comunidad (steamcommunity) nunca es una compra: detect() devuelve null.
+  const isSteamStore = (h) => /(^|\.)steampowered\./i.test(h || "");
   const steam = {
-    test: (h) => /(^|\.)steampowered\./i.test(h),
+    test: (h) => /(^|\.)(steampowered|steamcommunity)\./i.test(h),
     detect() {
+      if (!isSteamStore(location.hostname)) return null;
       if (!/\/app\/\d+/.test(location.pathname)) return null;
       const title = firstText(["#appHubAppName", ".apphub_AppName"]);
       if (!title) return null;
@@ -213,6 +217,7 @@
     // "Remove" hasta la tarjeta y tomamos el título del alt de la imagen de
     // cabecera (limpio). Anclar en role/texto/alt sobrevive a los rebuilds.
     cart() {
+      if (!isSteamStore(location.hostname)) return null;
       if (!/\/cart/i.test(location.pathname)) return null;
       const seen = new Set();
       const items = [];
