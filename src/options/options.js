@@ -74,12 +74,56 @@
     );
   }
 
+  function renderHosts(hosts) {
+    const ul = document.getElementById("hostlist");
+    const empty = document.getElementById("host-empty");
+    const count = document.getElementById("host-count");
+    ul.innerHTML = "";
+    count.textContent = hosts.length;
+    empty.classList.toggle("hidden", hosts.length > 0);
+
+    for (const h of hosts) {
+      const li = document.createElement("li");
+      li.className = "item";
+      const info = document.createElement("div");
+      info.className = "info";
+      const name = document.createElement("div");
+      name.className = "name";
+      name.textContent = h;
+      info.appendChild(name);
+
+      const btn = document.createElement("button");
+      btn.className = "remove";
+      btn.title = "Quitar";
+      btn.textContent = "×";
+      btn.addEventListener("click", async () => {
+        const res = await send({ type: "removeHost", host: h });
+        if (res.ok && res.data) renderHosts(res.data.hosts || []);
+      });
+
+      li.appendChild(info);
+      li.appendChild(btn);
+      ul.appendChild(li);
+    }
+  }
+
   async function load() {
     const res = await send({ type: "getState" });
     if (!res.ok) return;
     renderList("blocklist", res.blocklist || []);
     renderList("allowlist", res.allowlist || []);
+    renderHosts(res.hosts || []);
   }
+
+  document.getElementById("host-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = document.getElementById("host-input");
+    const host = input.value.trim();
+    if (!host) return;
+    const res = await send({ type: "addHost", host });
+    input.value = "";
+    if (res.ok && res.data) renderHosts(res.data.hosts || []);
+  });
 
   document.getElementById("clear-all").addEventListener("click", async () => {
     if (!confirm("¿Vaciar tu lista de productos que no necesitás?")) return;

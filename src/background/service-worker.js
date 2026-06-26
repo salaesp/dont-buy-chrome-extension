@@ -19,10 +19,26 @@ async function getState() {
     allowlist: data.allowlist,
     settings: data.settings,
     stats: data.stats,
+    hosts: data.hosts,
   };
 }
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+// Badge POR PESTAÑA: marca "✕" rojo solo si el producto que estás viendo en
+// esa tab es uno que ya descartaste. Vacío en el resto.
+async function setTabBadge(tabId, status) {
+  if (tabId == null) return;
+  try {
+    const text = status === "block" ? "✕" : "";
+    await chrome.action.setBadgeText({ tabId, text });
+    if (text) {
+      await chrome.action.setBadgeBackgroundColor({ tabId, color: "#ef4444" });
+    }
+  } catch (_) {
+    /* la tab pudo cerrarse */
+  }
+}
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       switch (message && message.type) {
@@ -49,6 +65,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
             data: await Storage.setEnabled(message.enabled),
           });
           break;
+        case "addHost":
+          sendResponse({ ok: true, data: await Storage.addHost(message.host) });
+          break;
+        case "removeHost":
+          sendResponse({
+            ok: true,
+            data: await Storage.removeHost(message.host),
+          });
+          break;
+        case "pageVerdict":
+          await setTabBadge(sender && sender.tab && sender.tab.id, message.status);
+          sendResponse({ ok: true });
+          break;
         case "clearAll":
           sendResponse({ ok: true, data: await Storage.clearAll() });
           break;
@@ -63,20 +92,19 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return true;
 });
 
-// Mantiene el badge con la cantidad de productos "no necesito".
-async function refreshBadge() {
+async function init() {
   try {
-    const { blocklist } = await Storage.getAll();
-    const n = blocklist.length;
-    await chrome.action.setBadgeText({ text: n ? String(n) : "" });
-    await chrome.action.setBadgeBackgroundColor({ color: "#ef4444" });
+    await Storage.migrateLegacy();
   } catch (_) {
     /* ignore */
   }
 }
 
-chrome.runtime.onInstalled.addListener(refreshBadge);
-chrome.runtime.onStartup.addListener(refreshBadge);
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "sync" && changes.blocklist) refreshBadge();
+chrome.runtime.onInstalled.addListener(init);
+chrome.runtime.onStartup.addListener(init);
+
+// Al navegar, limpia el badge de esa tab; el content script lo vuelve a poner
+// si corresponde.
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "loading") setTabBadge(tabId, "none");
 });

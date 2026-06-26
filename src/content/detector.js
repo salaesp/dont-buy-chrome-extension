@@ -183,13 +183,21 @@
 
   // Busca un precio en un elemento "hoja" y corto (no un párrafo que lo menciona).
   function findPriceLeaf(root) {
-    const els = root.querySelectorAll("div, span, p, b, strong, ins");
+    const el = findPriceLeafEl(root);
+    return el ? (el.textContent || "").trim() : "";
+  }
+
+  // Igual, pero devuelve el ELEMENTO (para difuminarlo).
+  function findPriceLeafEl(root) {
+    const els = (root || document).querySelectorAll(
+      "div, span, p, b, strong, ins"
+    );
     for (const el of els) {
       if (el.children.length) continue; // solo hojas
       const t = (el.textContent || "").trim();
-      if (t.length <= 14 && PRICE_RE.test(t)) return t;
+      if (t.length <= 14 && PRICE_RE.test(t)) return el;
     }
-    return "";
+    return null;
   }
 
   function fromStructured() {

@@ -182,9 +182,37 @@
     return { status: "unknown" };
   }
 
+  /** Normaliza un host: minúsculas, sin "www.", sin espacios. */
+  function normalizeHost(h) {
+    return String(h || "")
+      .toLowerCase()
+      .trim()
+      .replace(/^https?:\/\//, "")
+      .replace(/\/.*$/, "")
+      .replace(/^www\./, "");
+  }
+
+  /**
+   * ¿El host actual está habilitado según la lista blanca?
+   * Una entrada coincide si el host es igual, es un subdominio, o la entrada
+   * es un "trozo" contenido (p. ej. "amazon." matchea "amazon.com.ar").
+   * Lista vacía => no corre en ningún lado (hay que agregar sitios).
+   */
+  function hostMatches(hostname, list) {
+    const host = normalizeHost(hostname);
+    if (!host || !Array.isArray(list)) return false;
+    return list.some((raw) => {
+      const e = normalizeHost(raw);
+      if (!e) return false;
+      return host === e || host.endsWith("." + e) || host.indexOf(e) !== -1;
+    });
+  }
+
   const api = {
     normalizeText,
     tokenize,
+    normalizeHost,
+    hostMatches,
     shortHash,
     makeKey,
     buildSignature,

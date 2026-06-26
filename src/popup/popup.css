@@ -36,6 +36,29 @@ h1 { font-size: 15px; margin: 0; font-weight: 700; }
 input:checked + .slider { background: #22c55e; }
 input:checked + .slider::before { transform: translateX(18px); }
 
+.site-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+.site-info { display: flex; flex-direction: column; min-width: 0; }
+.site-label { font-size: 11px; color: #71717a; }
+.site-host {
+  font-size: 13px; font-weight: 600;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;
+}
+.site-btn {
+  flex: none;
+  background: #22c55e; color: #fff; border: none;
+  border-radius: 8px; padding: 7px 12px;
+  font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.site-btn.on { background: #ef4444; }
+.site-btn:disabled { background: #d4d4d8; cursor: default; }
+.site-btn:hover:not(:disabled) { filter: brightness(.97); }
+
 .stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

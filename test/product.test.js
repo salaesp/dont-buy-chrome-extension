@@ -120,3 +120,20 @@ test("evaluate: block por familia elige el MÁS parecido y trae score", () => {
   assert.equal(verdict.match.title, cercano.title); // el más parecido
   assert.ok(verdict.score > 0 && verdict.score <= 1);
 });
+
+test("normalizeHost: saca www, esquema y path", () => {
+  assert.equal(P.normalizeHost("https://www.Amazon.com/dp/x"), "amazon.com");
+  assert.equal(P.normalizeHost("MercadoLibre.com.ar"), "mercadolibre.com.ar");
+});
+
+test("hostMatches: lista blanca por dominio/subdominio/trozo", () => {
+  const hosts = ["amazon.", "repebble.com"];
+  assert.equal(P.hostMatches("www.amazon.com.ar", hosts), true);
+  assert.equal(P.hostMatches("repebble.com", hosts), true);
+  assert.equal(P.hostMatches("listado.mercadolibre.com.ar", hosts), false);
+  assert.equal(P.hostMatches("google.com", hosts), false);
+});
+
+test("hostMatches: lista vacía => no corre en ningún lado", () => {
+  assert.equal(P.hostMatches("amazon.com", []), false);
+});

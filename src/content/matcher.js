@@ -31,14 +31,34 @@
     });
   }
 
-  async function run() {
-    const signature = Detector.detect();
-    const cart = signature ? null : Detector.detectCart();
-    if (!signature && !cart) return; // ni ficha ni carrito
+  // Le avisa al service worker qué mostrar en el badge de ESTA pestaña.
+  // "block" => ✕ (el producto actual lo descartaste); "none" => limpio.
+  let lastSent = null;
+  function sendVerdict(status) {
+    if (status === lastSent) return;
+    lastSent = status;
+    send({ type: "pageVerdict", status });
+  }
 
+  async function run() {
     const res = await send({ type: "getState" });
     if (!res || !res.ok) return;
-    if (res.settings && res.settings.enabled === false) return;
+    if (res.settings && res.settings.enabled === false) {
+      sendVerdict("none");
+      return;
+    }
+    // Lista blanca: solo corre en los hosts habilitados.
+    if (!Product.hostMatches(location.hostname, res.hosts)) {
+      sendVerdict("none");
+      return;
+    }
+
+    const signature = Detector.detect();
+    const cart = signature ? null : Detector.detectCart();
+    if (!signature && !cart) {
+      sendVerdict("none");
+      return; // ni ficha ni carrito
+    }
 
     // Carrito: freno suave siempre + resalte de lo ya descartado.
     if (cart) {
@@ -52,6 +72,7 @@
       }
       shown = true;
       Banner.showCart(cart.items.length, flagged, {});
+      sendVerdict(flagged.length ? "block" : "none");
       return;
     }
 
@@ -60,21 +81,36 @@
       allowlist: res.allowlist,
     });
 
-    if (verdict.status === "allow") return; // ya dijo que lo necesita
+    if (verdict.status === "allow") {
+      sendVerdict("none");
+      return; // ya dijo que lo necesita
+    }
 
     shown = true;
-    Banner.show(verdict.status, signature, {
+    const info = {
       match: verdict.match,
       reason: verdict.reason,
       score: verdict.score,
-    }, {
+    };
+    const handlers = {
       onNeed: (scope) => {
         send({ type: "addAllow", signature: stripForStorage(signature), scope });
       },
       onSkip: (scope) => {
         send({ type: "addBlock", signature: stripForStorage(signature), scope });
       },
-    });
+    };
+
+    // "block" (ya descartado o parecido): blur de TODA la página + cartel
+    // centrado. Robusto entre sitios (no depende del layout). "unknown"
+    // (producto nuevo) usa el cartel suave arriba-centrado.
+    if (verdict.status === "block") {
+      Banner.showBlockOverlay(verdict.status, signature, info, handlers);
+      sendVerdict("block");
+    } else {
+      Banner.show(verdict.status, signature, info, handlers);
+      sendVerdict("none"); // "unknown" no es algo que descartaste
+    }
   }
 
   // Solo guardamos lo necesario (respeta el límite de chrome.storage.sync).
