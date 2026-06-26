@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="options.css" />
+    <title>Don't Buy — Mis listas</title>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>🛑 Don't Buy</h1>
+        <p>Gestioná los productos que marcaste. Se sincronizan con tu cuenta.</p>
+      </header>
+
+      <section>
+        <div class="section-head">
+          <h2>No lo necesito <span id="block-count" class="pill">0</span></h2>
+          <button id="clear-all" class="danger-link">Vaciar todo</button>
+        </div>
+        <ul id="blocklist" class="list"></ul>
+        <p id="block-empty" class="empty">Todavía no marcaste nada como innecesario.</p>
+      </section>
+
+      <section>
+        <div class="section-head">
+          <h2>Sí lo necesito <span id="allow-count" class="pill">0</span></h2>
+        </div>
+        <ul id="allowlist" class="list"></ul>
+        <p id="allow-empty" class="empty">No tenés excepciones guardadas.</p>
+      </section>
+    </main>
+
+    <script src="options.js"></script>
+  </body>
+</html>
