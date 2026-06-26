@@ -42,7 +42,11 @@ jobs:
       - name: Extract tag message
         id: notes
         run: |
-          BODY=$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")
+          # El checkout deja un tag liviano (apunta al commit). Traemos el
+          # objeto anotado para que %(contents) sea el mensaje del TAG.
+          git fetch --force origin \
+            "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" || true
+          BODY=$(git for-each-ref "refs/tags/${GITHUB_REF_NAME}" --format='%(contents)')
           if [ -n "$BODY" ]; then
             echo "$BODY" > RELEASE_NOTES.md
             echo "has_body=true" >> "$GITHUB_OUTPUT"
