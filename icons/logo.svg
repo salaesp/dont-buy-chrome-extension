@@ -1,36 +1,4 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 128 128">
-  <!-- Fondo menta -->
-  <rect width="128" height="128" fill="#b6f5ec"/>
-
-  <!-- Etiqueta de precio (tag) inclinada -->
-  <g transform="rotate(-45 64 64)">
-    <!-- cuerpo -->
-    <path d="M30 46
-             a8 8 0 0 1 8-8
-             h44
-             a6 6 0 0 1 4.3 1.8
-             l16 16
-             a6 6 0 0 1 0 8.4
-             l-16 16
-             a6 6 0 0 1 -4.3 1.8
-             h-44
-             a8 8 0 0 1 -8-8
-             z" fill="#e7ddc6"/>
-    <!-- agujero -->
-    <circle cx="86" cy="60" r="6.5" fill="#b6f5ec"/>
-    <!-- signo de $ -->
-    <text x="46" y="72" font-family="Arial, sans-serif" font-size="34" font-weight="bold" fill="#1f7a44" text-anchor="middle">$</text>
-    <!-- puntitos decorativos -->
-    <g fill="#cdbf9e">
-      <circle cx="66" cy="48" r="2"/><circle cx="74" cy="50" r="2"/><circle cx="82" cy="52" r="2"/>
-      <circle cx="62" cy="58" r="2"/><circle cx="70" cy="60" r="2"/>
-      <circle cx="60" cy="68" r="2"/><circle cx="68" cy="70" r="2"/><circle cx="76" cy="72" r="2"/>
-    </g>
-    <!-- hilo -->
-    <path d="M92 54 L112 30" stroke="#c0563f" stroke-width="6" stroke-linecap="round" fill="none"/>
-  </g>
-
-  <!-- Prohibición: círculo + barra -->
-  <circle cx="64" cy="64" r="54" fill="none" stroke="#f87963" stroke-width="11"/>
-  <line x1="26" y1="26" x2="102" y2="102" stroke="#f87963" stroke-width="11" stroke-linecap="round"/>
+  <polygon points="37,6 91,6 122,37 122,91 91,122 37,122 6,91 6,37" fill="#14b8a6"/>
+  <text x="64" y="90" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="76" fill="#ffffff">$</text>
 </svg>
