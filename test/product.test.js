@@ -98,3 +98,25 @@ test("evaluate: producto desconocido => unknown", () => {
   const verdict = P.evaluate(sig, { blocklist: [], allowlist: [] });
   assert.equal(verdict.status, "unknown");
 });
+
+test("scoreMatch: mismo producto => 1", () => {
+  const a = P.buildSignature({ domain: "x.com", title: "Mouse Gamer RGB" });
+  assert.equal(P.scoreMatch(a, a), 1);
+});
+
+test("scoreMatch: misma categoría => al menos 0.6", () => {
+  const a = P.buildSignature({ title: "Auriculares Sony", category: "Audio" });
+  const b = P.buildSignature({ title: "Parlante JBL", category: "Audio" });
+  assert.ok(P.scoreMatch(a, b) >= 0.6);
+});
+
+test("evaluate: block por familia elige el MÁS parecido y trae score", () => {
+  const lejano = P.buildSignature({ title: "Auriculares JBL inalámbricos" });
+  const cercano = P.buildSignature({ title: "Auriculares Sony Bluetooth WH" });
+  const nuevo = P.buildSignature({ title: "Auriculares Sony Bluetooth WH 1000" });
+  const verdict = P.evaluate(nuevo, { blocklist: [lejano, cercano], allowlist: [] });
+  assert.equal(verdict.status, "block");
+  assert.equal(verdict.reason, "family");
+  assert.equal(verdict.match.title, cercano.title); // el más parecido
+  assert.ok(verdict.score > 0 && verdict.score <= 1);
+});

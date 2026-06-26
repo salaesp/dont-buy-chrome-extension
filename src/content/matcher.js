@@ -33,11 +33,27 @@
 
   async function run() {
     const signature = Detector.detect();
-    if (!signature) return; // no es una ficha de producto
+    const cart = signature ? null : Detector.detectCart();
+    if (!signature && !cart) return; // ni ficha ni carrito
 
     const res = await send({ type: "getState" });
     if (!res || !res.ok) return;
     if (res.settings && res.settings.enabled === false) return;
+
+    // Carrito: freno suave siempre + resalte de lo ya descartado.
+    if (cart) {
+      const flagged = [];
+      for (const item of cart.items) {
+        const v = Product.evaluate(item, {
+          blocklist: res.blocklist,
+          allowlist: res.allowlist,
+        });
+        if (v.status === "block") flagged.push({ title: item.title });
+      }
+      shown = true;
+      Banner.showCart(cart.items.length, flagged, {});
+      return;
+    }
 
     const verdict = Product.evaluate(signature, {
       blocklist: res.blocklist,
@@ -46,7 +62,12 @@
 
     if (verdict.status === "allow") return; // ya dijo que lo necesita
 
+    shown = true;
     Banner.show(verdict.status, signature, {
+      match: verdict.match,
+      reason: verdict.reason,
+      score: verdict.score,
+    }, {
       onNeed: (scope) => {
         send({ type: "addAllow", signature: stripForStorage(signature), scope });
       },
@@ -68,17 +89,36 @@
     };
   }
 
+  // Evita correr dos veces en simultáneo y deja de reintentar cuando ya
+  // mostramos algo.
+  let shown = false;
+  async function tick() {
+    if (shown) return;
+    await run();
+  }
+
   // Muchas tiendas son SPA: el producto cambia sin recargar. Re-evaluamos al
   // detectar cambios de URL.
   let lastUrl = location.href;
   const observer = new MutationObserver(() => {
     if (location.href !== lastUrl) {
       lastUrl = location.href;
+      shown = false;
       Banner.remove();
-      run();
+      tick();
     }
   });
   observer.observe(document, { subtree: true, childList: true });
 
-  run();
+  // SPAs (Next/React) hidratan después de document_idle: el botón de compra y
+  // el precio pueden no existir en el primer intento. Reintentamos un rato.
+  tick();
+  let tries = 0;
+  const retry = setInterval(() => {
+    if (shown || ++tries > 8) {
+      clearInterval(retry);
+      return;
+    }
+    tick();
+  }, 700);
 })();

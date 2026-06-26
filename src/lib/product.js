@@ -92,25 +92,53 @@
   const FAMILY_THRESHOLD = 0.34; // ~1 de 3 tokens en común para considerar familia
 
   /**
-   * ¿La firma pertenece a la misma familia que una entrada guardada?
-   * Coincide si la categoría normalizada es idéntica (y no vacía) o si los
-   * tokens se solapan por encima del umbral.
+   * Puntaje de parecido 0..1 entre una firma y una entrada guardada.
+   *   1.0  -> mismo producto (misma key)
+   *   ~0.6 -> misma categoría (familia fuerte aunque difieran los títulos)
+   *   resto -> solapamiento de tokens (Jaccard)
+   * Se queda con el mayor de los dos para no perder señal.
    */
-  function isFamilyMatch(signature, entry, threshold = FAMILY_THRESHOLD) {
-    if (!signature || !entry) return false;
+  function scoreMatch(signature, entry) {
+    if (!signature || !entry) return 0;
+    if (signature.key && entry.key && signature.key === entry.key) return 1;
+    let score = tokenOverlap(signature.tokens, entry.tokens);
     if (
       signature.categoryNorm &&
       entry.categoryNorm &&
       signature.categoryNorm === entry.categoryNorm
     ) {
-      return true;
+      score = Math.max(score, 0.6);
     }
-    return tokenOverlap(signature.tokens, entry.tokens) >= threshold;
+    return score;
+  }
+
+  /**
+   * ¿La firma pertenece a la misma familia que una entrada guardada?
+   * Coincide si el puntaje de parecido supera el umbral.
+   */
+  function isFamilyMatch(signature, entry, threshold = FAMILY_THRESHOLD) {
+    return scoreMatch(signature, entry) >= threshold;
+  }
+
+  /**
+   * Recorre una lista y devuelve la entrada MÁS parecida por encima del umbral.
+   * @returns {{entry:object, score:number}|null}
+   */
+  function bestMatch(signature, list, threshold = FAMILY_THRESHOLD) {
+    let best = null;
+    for (const e of list || []) {
+      const score = scoreMatch(signature, e);
+      if (score >= threshold && (!best || score > best.score)) {
+        best = { entry: e, score };
+      }
+    }
+    return best;
   }
 
   /**
    * Evalúa una firma contra las listas guardadas.
-   * @returns {{status:'allow'|'block'|'unknown', match?:object, reason?:string}}
+   * @returns {{status:'allow'|'block'|'unknown', match?:object,
+   *            reason?:'product'|'family', score?:number}}
    */
   function evaluate(signature, lists) {
     const blocklist = (lists && lists.blocklist) || [];
@@ -119,25 +147,36 @@
     // 1) "Lo necesito" gana: si está permitido (exacto o por familia), no molesta.
     for (const e of allowlist) {
       if (e.key === signature.key) {
-        return { status: "allow", match: e, reason: "product" };
+        return { status: "allow", match: e, reason: "product", score: 1 };
       }
     }
-    for (const e of allowlist) {
-      if (e.scope === "family" && isFamilyMatch(signature, e)) {
-        return { status: "allow", match: e, reason: "family" };
-      }
+    const allowFam = bestMatch(
+      signature,
+      allowlist.filter((e) => e.scope === "family")
+    );
+    if (allowFam) {
+      return {
+        status: "allow",
+        match: allowFam.entry,
+        reason: "family",
+        score: allowFam.score,
+      };
     }
 
-    // 2) "No lo necesito": bloqueo exacto o por familia.
+    // 2) "No lo necesito": bloqueo exacto o por el más parecido de la familia.
     for (const e of blocklist) {
       if (e.key === signature.key) {
-        return { status: "block", match: e, reason: "product" };
+        return { status: "block", match: e, reason: "product", score: 1 };
       }
     }
-    for (const e of blocklist) {
-      if (isFamilyMatch(signature, e)) {
-        return { status: "block", match: e, reason: "family" };
-      }
+    const blockFam = bestMatch(signature, blocklist);
+    if (blockFam) {
+      return {
+        status: "block",
+        match: blockFam.entry,
+        reason: "family",
+        score: blockFam.score,
+      };
     }
 
     return { status: "unknown" };
@@ -150,7 +189,9 @@
     makeKey,
     buildSignature,
     tokenOverlap,
+    scoreMatch,
     isFamilyMatch,
+    bestMatch,
     evaluate,
     FAMILY_THRESHOLD,
   };

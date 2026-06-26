@@ -70,6 +70,26 @@
         confidence: 0.98,
       };
     },
+    // Carrito de Amazon: cada ítem es .sc-list-item[data-asin]; el título limpio
+    // está en .a-truncate-full (texto offscreen, sin "…" de truncado).
+    cart() {
+      const box = document.querySelector("#sc-active-cart, #activeCartViewForm");
+      if (!box) return null;
+      const seen = new Set();
+      const items = [];
+      box.querySelectorAll(".sc-list-item[data-asin]").forEach((it) => {
+        const t =
+          firstText(
+            [".sc-product-title .a-truncate-full", ".sc-product-title"],
+            it
+          ) || "";
+        if (t && t.length >= 4 && !seen.has(t)) {
+          seen.add(t);
+          items.push({ title: t });
+        }
+      });
+      return items.length ? { items } : null;
+    },
   };
 
   // ---- eBay -----------------------------------------------------------------
@@ -132,9 +152,32 @@
         confidence: 0.98,
       };
     },
+    // Carrito de MELI: títulos limpios en a.poly-component__title, dentro de la
+    // lista de tarjetas. El scope evita confundir recomendaciones/listados.
+    cart() {
+      const list = document.querySelector(
+        '[data-testid="card-list"], .cl-cards-list, .cl-grouped-items__container'
+      );
+      if (!list) return null;
+      const seen = new Set();
+      const items = [];
+      list.querySelectorAll(".poly-component__title").forEach((n) => {
+        const t = n.textContent.replace(/\s+/g, " ").trim();
+        if (t.length >= 6 && !seen.has(t)) {
+          seen.add(t);
+          items.push({ title: t });
+        }
+      });
+      return items.length ? { items } : null;
+    },
   };
 
   const RULES = [amazon, ebay, mercadolibre];
+
+  /** ¿Hay una regla específica para este host? (tienda conocida) */
+  function handles(host) {
+    return RULES.some((rule) => rule.test(host || location.hostname));
+  }
 
   /** Aplica la regla de la tienda actual, si hay alguna. */
   function detect() {
@@ -151,5 +194,20 @@
     return null;
   }
 
-  global.DontBuySites = { detect, RULES };
+  /** Aplica la regla de carrito de la tienda actual, si la tiene. */
+  function detectCart() {
+    const host = location.hostname;
+    for (const rule of RULES) {
+      if (rule.test(host) && typeof rule.cart === "function") {
+        try {
+          return rule.cart();
+        } catch (_) {
+          return null;
+        }
+      }
+    }
+    return null;
+  }
+
+  global.DontBuySites = { detect, detectCart, handles, RULES };
 })(typeof self !== "undefined" ? self : this);
