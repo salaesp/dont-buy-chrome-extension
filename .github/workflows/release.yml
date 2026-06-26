@@ -15,8 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-tags: true # trae el objeto del tag anotado (para leer su mensaje)
 
       # Verifica que el tag coincida con la versión del manifest (evita
       # publicar un zip cuya versión no matchea el tag).
