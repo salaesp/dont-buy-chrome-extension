@@ -1,7 +1,7 @@
 {
   "appName": { "message": "Don't Buy — Stop the Impulse" },
   "appDesc": {
-    "message": "Detects when you're looking at a product and reminds you that you might not need it. Syncs your list across browsers with your account."
+    "message": "Spots when you're viewing a product and reminds you that you might not need it. Syncs your list across browsers."
   },
   "brand": { "message": "Don't Buy" },
 
