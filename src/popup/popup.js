@@ -38,21 +38,21 @@
     });
   }
 
-  function renderSite(hosts) {
+  // Activo POR DEFECTO en todos lados: el sitio solo está apagado si está en
+  // la lista de desactivados.
+  function renderSite(dismissed) {
     const norm = Product ? Product.normalizeHost(currentHost) : currentHost;
-    const enabled = Product
-      ? Product.hostMatches(currentHost, hosts)
-      : false;
     if (!norm) {
       siteHostEl.textContent = "—";
       toggleSiteEl.disabled = true;
       return;
     }
+    const off = Product ? Product.hostMatches(currentHost, dismissed) : false;
     siteHostEl.textContent = norm;
     toggleSiteEl.disabled = false;
-    toggleSiteEl.textContent = enabled ? "Desactivar" : "Activar";
-    toggleSiteEl.classList.toggle("on", enabled);
-    toggleSiteEl.dataset.enabled = enabled ? "1" : "0";
+    toggleSiteEl.textContent = off ? "Activar" : "Desactivar";
+    toggleSiteEl.classList.toggle("on", !off); // rojo cuando está activo
+    toggleSiteEl.dataset.off = off ? "1" : "0";
   }
 
   async function render() {
@@ -62,7 +62,7 @@
     blockCountEl.textContent = (res.blocklist || []).length;
     allowCountEl.textContent = (res.allowlist || []).length;
     blockedTotalEl.textContent = (res.stats && res.stats.blocked) || 0;
-    renderSite(res.hosts || []);
+    renderSite(res.dismissed || []);
   }
 
   enabledEl.addEventListener("change", async () => {
@@ -72,12 +72,13 @@
   toggleSiteEl.addEventListener("click", async () => {
     const norm = Product ? Product.normalizeHost(currentHost) : currentHost;
     if (!norm) return;
-    const enabled = toggleSiteEl.dataset.enabled === "1";
+    const off = toggleSiteEl.dataset.off === "1";
+    // off => "Activar" (addHost lo saca de dismissed); si no, "Desactivar".
     const res = await send({
-      type: enabled ? "removeHost" : "addHost",
+      type: off ? "addHost" : "removeHost",
       host: norm,
     });
-    if (res.ok && res.data) renderSite(res.data.hosts || []);
+    if (res.ok && res.data) renderSite(res.data.dismissed || []);
   });
 
   document.getElementById("open-options").addEventListener("click", () => {

@@ -19,15 +19,18 @@
   const SETTINGS_KEY = "settings";
   const STATS_KEY = "stats";
   const HOSTS_KEY = "hosts";
+  const DISMISSED_KEY = "dismissed";
 
-  // Lista blanca: la extensión SOLO corre en estos hosts. Semilla con las
-  // tiendas conocidas; el usuario agrega/saca desde el popup u opciones.
+  // `hosts` = sitios donde corre (semilla + autodescubiertos al encontrar
+  // productos). `dismissed` = sitios que el usuario desactivó (no corre ni se
+  // vuelve a autoagregar). La extensión corre en todos lados SALVO los dismissed.
   const DEFAULT_HOSTS = ["amazon.", "ebay.", "mercadolibre.", "mercadolivre."];
 
   const DEFAULTS = {
     settings: { enabled: true },
     stats: { blocked: 0 }, // cuántas veces el usuario dijo "no lo necesito"
     hosts: DEFAULT_HOSTS.slice(),
+    dismissed: [],
   };
 
   function syncGet(query) {
@@ -114,15 +117,22 @@
       settings: data.settings || { ...DEFAULTS.settings },
       stats: data.stats || { ...DEFAULTS.stats },
       hosts: Array.isArray(data.hosts) ? data.hosts : DEFAULT_HOSTS.slice(),
+      dismissed: Array.isArray(data.dismissed) ? data.dismissed : [],
     };
   }
 
   async function getSmall() {
-    const data = await syncGet([SETTINGS_KEY, STATS_KEY, HOSTS_KEY]);
+    const data = await syncGet([
+      SETTINGS_KEY,
+      STATS_KEY,
+      HOSTS_KEY,
+      DISMISSED_KEY,
+    ]);
     return {
       settings: data.settings || { ...DEFAULTS.settings },
       stats: data.stats || { ...DEFAULTS.stats },
       hosts: Array.isArray(data.hosts) ? data.hosts : DEFAULT_HOSTS.slice(),
+      dismissed: Array.isArray(data.dismissed) ? data.dismissed : [],
     };
   }
 
@@ -136,20 +146,34 @@
       .replace(/^www\./, "");
   }
 
+  // Activar un sitio: lo suma a `hosts` y lo saca de `dismissed`.
   async function addHost(host) {
     const h = normHost(host);
     if (!h) return getAll();
-    const { hosts } = await getSmall();
-    if (!hosts.map(normHost).includes(h)) {
-      await syncSet({ [HOSTS_KEY]: [...hosts, h] });
+    const { hosts, dismissed } = await getSmall();
+    const partial = {};
+    if (!hosts.map(normHost).includes(h)) partial[HOSTS_KEY] = [...hosts, h];
+    const nextDismissed = dismissed.filter((x) => normHost(x) !== h);
+    if (nextDismissed.length !== dismissed.length) {
+      partial[DISMISSED_KEY] = nextDismissed;
     }
+    if (Object.keys(partial).length) await syncSet(partial);
     return getAll();
   }
 
+  // Desactivar un sitio: lo saca de `hosts` y lo recuerda en `dismissed`
+  // (para no volver a autoagregarlo).
   async function removeHost(host) {
     const h = normHost(host);
-    const { hosts } = await getSmall();
-    await syncSet({ [HOSTS_KEY]: hosts.filter((x) => normHost(x) !== h) });
+    if (!h) return getAll();
+    const { hosts, dismissed } = await getSmall();
+    const partial = {
+      [HOSTS_KEY]: hosts.filter((x) => normHost(x) !== h),
+    };
+    if (!dismissed.map(normHost).includes(h)) {
+      partial[DISMISSED_KEY] = [...dismissed, h];
+    }
+    await syncSet(partial);
     return getAll();
   }
 

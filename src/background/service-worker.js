@@ -20,6 +20,7 @@ async function getState() {
     settings: data.settings,
     stats: data.stats,
     hosts: data.hosts,
+    dismissed: data.dismissed,
   };
 }
 

@@ -47,8 +47,8 @@
       sendVerdict("none");
       return;
     }
-    // Lista blanca: solo corre en los hosts habilitados.
-    if (!Product.hostMatches(location.hostname, res.hosts)) {
+    // Corre en todos lados SALVO los sitios que desactivaste.
+    if (Product.hostMatches(location.hostname, res.dismissed)) {
       sendVerdict("none");
       return;
     }
@@ -58,6 +58,15 @@
     if (!signature && !cart) {
       sendVerdict("none");
       return; // ni ficha ni carrito
+    }
+
+    // Encontró producto/carrito: autoregistra el sitio en la lista (si no
+    // estaba) para que aparezca en el popup y lo puedas desactivar.
+    if (!Product.hostMatches(location.hostname, res.hosts)) {
+      send({
+        type: "addHost",
+        host: Product.normalizeHost(location.hostname),
+      });
     }
 
     // Carrito: freno suave siempre + resalte de lo ya descartado.
@@ -98,6 +107,8 @@
       },
       onSkip: (scope) => {
         send({ type: "addBlock", signature: stripForStorage(signature), scope });
+        // No lo necesitás => salí de la página (volvé atrás si se puede).
+        goBack();
       },
     };
 
@@ -110,6 +121,17 @@
     } else {
       Banner.show(verdict.status, signature, info, handlers);
       sendVerdict("none"); // "unknown" no es algo que descartaste
+    }
+  }
+
+  // Vuelve a la página anterior. Si no hay historial (entraste directo),
+  // cae a cerrar la pestaña no es posible desde content script, así que
+  // como mínimo no rompe nada.
+  function goBack() {
+    try {
+      if (history.length > 1) history.back();
+    } catch (_) {
+      /* ignore */
     }
   }
 

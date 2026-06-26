@@ -74,15 +74,15 @@
     );
   }
 
-  function renderHosts(hosts) {
-    const ul = document.getElementById("hostlist");
-    const empty = document.getElementById("host-empty");
-    const count = document.getElementById("host-count");
+  function renderDismissed(dismissed) {
+    const ul = document.getElementById("dismissedlist");
+    const empty = document.getElementById("dismissed-empty");
+    const count = document.getElementById("dismissed-count");
     ul.innerHTML = "";
-    count.textContent = hosts.length;
-    empty.classList.toggle("hidden", hosts.length > 0);
+    count.textContent = dismissed.length;
+    empty.classList.toggle("hidden", dismissed.length > 0);
 
-    for (const h of hosts) {
+    for (const h of dismissed) {
       const li = document.createElement("li");
       li.className = "item";
       const info = document.createElement("div");
@@ -93,12 +93,11 @@
       info.appendChild(name);
 
       const btn = document.createElement("button");
-      btn.className = "remove";
-      btn.title = "Quitar";
-      btn.textContent = "×";
+      btn.className = "reactivate";
+      btn.textContent = "Activar";
       btn.addEventListener("click", async () => {
-        const res = await send({ type: "removeHost", host: h });
-        if (res.ok && res.data) renderHosts(res.data.hosts || []);
+        const res = await send({ type: "addHost", host: h });
+        if (res.ok && res.data) renderDismissed(res.data.dismissed || []);
       });
 
       li.appendChild(info);
@@ -112,18 +111,8 @@
     if (!res.ok) return;
     renderList("blocklist", res.blocklist || []);
     renderList("allowlist", res.allowlist || []);
-    renderHosts(res.hosts || []);
+    renderDismissed(res.dismissed || []);
   }
-
-  document.getElementById("host-form").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const input = document.getElementById("host-input");
-    const host = input.value.trim();
-    if (!host) return;
-    const res = await send({ type: "addHost", host });
-    input.value = "";
-    if (res.ok && res.data) renderHosts(res.data.hosts || []);
-  });
 
   document.getElementById("clear-all").addEventListener("click", async () => {
     if (!confirm("¿Vaciar tu lista de productos que no necesitás?")) return;

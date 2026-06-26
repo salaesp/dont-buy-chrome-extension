@@ -15,17 +15,13 @@
 
       <section>
         <div class="section-head">
-          <h2>Sitios donde corre <span id="host-count" class="pill">0</span></h2>
+          <h2>Sitios desactivados <span id="dismissed-count" class="pill">0</span></h2>
         </div>
-        <p class="hint">La extensión solo funciona en estos sitios. Agregá el
-          dominio (ej. <code>repebble.com</code>).</p>
-        <form id="host-form" class="host-form">
-          <input id="host-input" type="text" placeholder="dominio.com"
-            autocomplete="off" spellcheck="false" />
-          <button type="submit">Agregar</button>
-        </form>
-        <ul id="hostlist" class="list"></ul>
-        <p id="host-empty" class="empty">No hay sitios habilitados.</p>
+        <p class="hint">Don't Buy corre en cualquier sitio donde detecte
+          productos. Estos los desactivaste: no corre ahí. Reactivá para
+          volver a usarlo.</p>
+        <ul id="dismissedlist" class="list"></ul>
+        <p id="dismissed-empty" class="empty">No desactivaste ningún sitio.</p>
       </section>
 
       <section>
