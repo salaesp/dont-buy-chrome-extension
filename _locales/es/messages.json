@@ -1,0 +1,71 @@
+{
+  "appName": { "message": "Don't Buy — Frená el impulso" },
+  "appDesc": {
+    "message": "Detecta cuando estás viendo un producto y te avisa que quizá no lo necesitás. Sincroniza tu lista entre navegadores con tu cuenta."
+  },
+  "brand": { "message": "Don't Buy" },
+
+  "unkTitle": { "message": "¿Seguro que lo necesitás?" },
+  "unkMsg": {
+    "message": "Estás viendo un producto que todavía no marcaste. Tomate un segundo antes de comprar."
+  },
+  "blockTitle": { "message": "Ya dijiste que NO lo necesitás" },
+  "blockMsg": {
+    "message": "Marcaste exactamente este producto como innecesario. ¿De verdad cambió algo?"
+  },
+  "familyTitle": { "message": "Se parece a algo que ya descartaste" },
+  "familyMsg": {
+    "message": "No es idéntico, pero es muy parecido a un producto que marcaste como innecesario."
+  },
+  "likeTo": { "message": "Se parece a:" },
+  "applyFamily": { "message": "Aplicar a toda la familia ($1)" },
+  "similarProducts": { "message": "productos similares" },
+  "needIt": { "message": "Lo necesito" },
+  "dontNeedIt": { "message": "No lo necesito" },
+  "seeAnyway": { "message": "Ver igual" },
+  "reminderBar": { "message": "Acordate que dijiste que no lo necesitabas." },
+  "removeFromDont": { "message": "Quitar de \"No lo necesito\"" },
+  "removeFromNeed": { "message": "Quitar de \"Sí lo necesito\"" },
+  "coveredTitle": { "message": "Listo, lo dejamos tapado" },
+  "coveredMsg": {
+    "message": "La página queda difuminada. Si de verdad lo necesitás, tocá «Ver igual»."
+  },
+  "close": { "message": "Cerrar" },
+
+  "cartTitle": { "message": "Pará un segundo" },
+  "cartMsg": {
+    "message": "Estás en el carrito con $1. ¿De verdad necesitás todo antes de pagar?"
+  },
+  "cartItemOne": { "message": "$1 producto" },
+  "cartItemMany": { "message": "$1 productos" },
+  "cartItemsFallback": { "message": "lo que tenés" },
+  "cartFlagged": { "message": "Ya habías dicho que NO necesitabas:" },
+  "cartThought": { "message": "Lo pensé, sigo" },
+
+  "enabledLabel": { "message": "Avisos activados" },
+  "thisSite": { "message": "En este sitio" },
+  "activate": { "message": "Activar" },
+  "deactivate": { "message": "Desactivar" },
+  "statDont": { "message": "No necesito" },
+  "statNeed": { "message": "Sí necesito" },
+  "statBrakes": { "message": "Frenos" },
+  "manageLists": { "message": "Gestionar mis listas →" },
+
+  "optIntro": {
+    "message": "Gestioná los productos que marcaste. Se sincronizan con tu cuenta."
+  },
+  "dismissedTitle": { "message": "Sitios desactivados" },
+  "dismissedHint": {
+    "message": "Don't Buy corre en cualquier sitio donde detecte productos. Estos los desactivaste: no corre ahí. Reactivá para volver a usarlo."
+  },
+  "dismissedEmpty": { "message": "No desactivaste ningún sitio." },
+  "blockSection": { "message": "No lo necesito" },
+  "allowSection": { "message": "Sí lo necesito" },
+  "clearAll": { "message": "Vaciar todo" },
+  "blockEmpty": { "message": "Todavía no marcaste nada como innecesario." },
+  "allowEmpty": { "message": "No tenés excepciones guardadas." },
+  "scopeFamily": { "message": "Familia" },
+  "scopeProduct": { "message": "Producto" },
+  "removeTitle": { "message": "Quitar" },
+  "confirmClear": { "message": "¿Vaciar tu lista de productos que no necesitás?" }
+}

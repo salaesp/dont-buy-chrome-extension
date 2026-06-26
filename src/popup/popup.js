@@ -3,6 +3,22 @@
   "use strict";
 
   const Product = window.DontBuyProduct;
+
+  function msg(key) {
+    try {
+      return (chrome.i18n && chrome.i18n.getMessage(key)) || key;
+    } catch (_) {
+      return key;
+    }
+  }
+  // Aplica las traducciones a los textos estáticos marcados con data-i18n.
+  function applyI18n() {
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const m = msg(el.getAttribute("data-i18n"));
+      if (m) el.textContent = m;
+    });
+  }
+
   const enabledEl = document.getElementById("enabled");
   const blockCountEl = document.getElementById("block-count");
   const allowCountEl = document.getElementById("allow-count");
@@ -10,7 +26,12 @@
   const siteHostEl = document.getElementById("site-host");
   const toggleSiteEl = document.getElementById("toggle-site");
 
+  const productRowEl = document.getElementById("product-row");
+  const removeFromListEl = document.getElementById("remove-from-list");
+
   let currentHost = "";
+  let currentTabId = null;
+  let currentProduct = null; // { key, list } del producto de la pestaña
 
   function send(message) {
     return new Promise((resolve) => {
@@ -20,22 +41,47 @@
     });
   }
 
-  // Host de la pestaña activa (requiere activeTab, concedido al abrir el popup).
-  function activeHost() {
+  // Pestaña activa: host + id (requiere activeTab, concedido al abrir popup).
+  function activeTab() {
     return new Promise((resolve) => {
       try {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-          const url = tabs && tabs[0] && tabs[0].url;
-          try {
-            resolve(url ? new URL(url).hostname : "");
-          } catch (_) {
-            resolve("");
-          }
+          resolve((tabs && tabs[0]) || null);
         });
       } catch (_) {
-        resolve("");
+        resolve(null);
       }
     });
+  }
+
+  // Pregunta al content script si el producto de la pestaña está en una lista.
+  function fetchCurrentProduct() {
+    return new Promise((resolve) => {
+      if (currentTabId == null) return resolve(null);
+      try {
+        chrome.tabs.sendMessage(
+          currentTabId,
+          { type: "getCurrentProduct" },
+          (res) => {
+            if (chrome.runtime.lastError || !res || !res.ok) return resolve(null);
+            resolve(res);
+          }
+        );
+      } catch (_) {
+        resolve(null);
+      }
+    });
+  }
+
+  function renderProduct() {
+    if (!currentProduct) {
+      productRowEl.classList.add("hidden");
+      return;
+    }
+    productRowEl.classList.remove("hidden");
+    removeFromListEl.textContent = msg(
+      currentProduct.list === "blocklist" ? "removeFromDont" : "removeFromNeed"
+    );
   }
 
   // Activo POR DEFECTO en todos lados: el sitio solo está apagado si está en
@@ -50,7 +96,7 @@
     const off = Product ? Product.hostMatches(currentHost, dismissed) : false;
     siteHostEl.textContent = norm;
     toggleSiteEl.disabled = false;
-    toggleSiteEl.textContent = off ? "Activar" : "Desactivar";
+    toggleSiteEl.textContent = off ? msg("activate") : msg("deactivate");
     toggleSiteEl.classList.toggle("on", !off); // rojo cuando está activo
     toggleSiteEl.dataset.off = off ? "1" : "0";
   }
@@ -81,12 +127,33 @@
     if (res.ok && res.data) renderSite(res.data.dismissed || []);
   });
 
+  removeFromListEl.addEventListener("click", async () => {
+    if (!currentProduct) return;
+    await send({
+      type: "removeItem",
+      list: currentProduct.list,
+      key: currentProduct.key,
+    });
+    currentProduct = null;
+    renderProduct();
+    render(); // refresca contadores
+  });
+
   document.getElementById("open-options").addEventListener("click", () => {
     chrome.runtime.openOptionsPage();
   });
 
+  applyI18n();
   (async () => {
-    currentHost = await activeHost();
+    const tab = await activeTab();
+    currentTabId = tab && tab.id;
+    try {
+      currentHost = tab && tab.url ? new URL(tab.url).hostname : "";
+    } catch (_) {
+      currentHost = "";
+    }
     render();
+    currentProduct = await fetchCurrentProduct();
+    renderProduct();
   })();
 })();

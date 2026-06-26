@@ -2,6 +2,20 @@
 (function () {
   "use strict";
 
+  function msg(key) {
+    try {
+      return (chrome.i18n && chrome.i18n.getMessage(key)) || key;
+    } catch (_) {
+      return key;
+    }
+  }
+  function applyI18n() {
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      const m = msg(el.getAttribute("data-i18n"));
+      if (m) el.textContent = m;
+    });
+  }
+
   function send(message) {
     return new Promise((resolve) => {
       chrome.runtime.sendMessage(message, (res) =>
@@ -42,9 +56,9 @@
       name.textContent = e.title || "(sin título)";
       const meta = document.createElement("div");
       meta.className = "meta";
-      const scopeTag = e.scope === "family" ? "Familia" : "Producto";
+      const scopeTag = e.scope === "family" ? msg("scopeFamily") : msg("scopeProduct");
       meta.innerHTML =
-        `<span class="tag">${scopeTag}</span>` +
+        `<span class="tag">${escapeHtml(scopeTag)}</span>` +
         `<span class="tag">${escapeHtml(e.domain || "")}</span>` +
         (e.category ? `<span class="tag">${escapeHtml(e.category)}</span>` : "") +
         `${fmtDate(e.addedAt)}`;
@@ -53,7 +67,7 @@
 
       const btn = document.createElement("button");
       btn.className = "remove";
-      btn.title = "Quitar";
+      btn.title = msg("removeTitle");
       btn.textContent = "×";
       btn.addEventListener("click", async () => {
         await send({ type: "removeItem", list: listName, key: e.key });
@@ -94,7 +108,7 @@
 
       const btn = document.createElement("button");
       btn.className = "reactivate";
-      btn.textContent = "Activar";
+      btn.textContent = msg("activate");
       btn.addEventListener("click", async () => {
         const res = await send({ type: "addHost", host: h });
         if (res.ok && res.data) renderDismissed(res.data.dismissed || []);
@@ -115,10 +129,12 @@
   }
 
   document.getElementById("clear-all").addEventListener("click", async () => {
-    if (!confirm("¿Vaciar tu lista de productos que no necesitás?")) return;
+    if (!confirm(msg("confirmClear"))) return;
     await send({ type: "clearAll" });
     load();
   });
+
+  applyI18n();
 
   // Refresca si cambia el storage en otra pestaña/navegador.
   chrome.storage.onChanged.addListener((_c, area) => {

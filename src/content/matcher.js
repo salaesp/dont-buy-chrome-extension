@@ -40,6 +40,25 @@
     send({ type: "pageVerdict", status });
   }
 
+  // Producto evaluado en esta pestaña (lo consulta el popup para ofrecer
+  // "quitar de la lista"). null si la página no es una ficha.
+  let lastProduct = null;
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg && msg.type === "getCurrentProduct") {
+      if (lastProduct && lastProduct.status !== "unknown") {
+        sendResponse({
+          ok: true,
+          key: lastProduct.key,
+          title: lastProduct.title,
+          list: lastProduct.status === "block" ? "blocklist" : "allowlist",
+        });
+      } else {
+        sendResponse({ ok: false });
+      }
+    }
+    // respuesta síncrona
+  });
+
   async function run() {
     const res = await send({ type: "getState" });
     if (!res || !res.ok) return;
@@ -90,6 +109,13 @@
       allowlist: res.allowlist,
     });
 
+    // Recordamos el producto + su lista para el popup.
+    lastProduct = {
+      key: (verdict.match && verdict.match.key) || signature.key,
+      title: signature.title,
+      status: verdict.status,
+    };
+
     if (verdict.status === "allow") {
       sendVerdict("none");
       return; // ya dijo que lo necesita
@@ -101,37 +127,41 @@
       reason: verdict.reason,
       score: verdict.score,
     };
-    const handlers = {
-      onNeed: (scope) => {
-        send({ type: "addAllow", signature: stripForStorage(signature), scope });
-      },
-      onSkip: (scope) => {
-        send({ type: "addBlock", signature: stripForStorage(signature), scope });
-        // No lo necesitás => salí de la página (volvé atrás si se puede).
-        goBack();
-      },
+    const onNeed = (scope) => {
+      send({ type: "addAllow", signature: stripForStorage(signature), scope });
+    };
+    const addBlock = (scope) => {
+      send({ type: "addBlock", signature: stripForStorage(signature), scope });
     };
 
     // "block" (ya descartado o parecido): blur de TODA la página + cartel
     // centrado. Robusto entre sitios (no depende del layout). "unknown"
     // (producto nuevo) usa el cartel suave arriba-centrado.
     if (verdict.status === "block") {
-      Banner.showBlockOverlay(verdict.status, signature, info, handlers);
+      // onSkip solo reafirma; el banner deja la página tapada por su cuenta.
+      Banner.showBlockOverlay(verdict.status, signature, info, {
+        onNeed,
+        onSkip: addBlock,
+      });
       sendVerdict("block");
     } else {
-      Banner.show(verdict.status, signature, info, handlers);
+      // Primera vez ("unknown"): si dice "no lo necesito", lo guarda y abre el
+      // MISMO cartel tapado que cuando ya estaba descartado.
+      Banner.show(verdict.status, signature, info, {
+        onNeed,
+        onSkip: (scope) => {
+          addBlock(scope);
+          Banner.showBlockOverlay(
+            "block",
+            signature,
+            { reason: scope === "family" ? "family" : "product" },
+            { onNeed },
+            { confirmed: true }
+          );
+          sendVerdict("block");
+        },
+      });
       sendVerdict("none"); // "unknown" no es algo que descartaste
-    }
-  }
-
-  // Vuelve a la página anterior. Si no hay historial (entraste directo),
-  // cae a cerrar la pestaña no es posible desde content script, así que
-  // como mínimo no rompe nada.
-  function goBack() {
-    try {
-      if (history.length > 1) history.back();
-    } catch (_) {
-      /* ignore */
     }
   }
 

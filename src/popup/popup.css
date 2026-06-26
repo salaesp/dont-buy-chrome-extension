@@ -59,6 +59,15 @@ input:checked + .slider::before { transform: translateX(18px); }
 .site-btn:disabled { background: #d4d4d8; cursor: default; }
 .site-btn:hover:not(:disabled) { filter: brightness(.97); }
 
+.product-row { padding: 0 16px 12px; }
+.product-row.hidden { display: none; }
+#remove-from-list {
+  width: 100%; background: #fef2f2; color: #b91c1c;
+  border: 1px solid #fee2e2; border-radius: 9px; padding: 9px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+}
+#remove-from-list:hover { filter: brightness(.98); }
+
 .stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

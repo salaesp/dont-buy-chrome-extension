@@ -1,0 +1,71 @@
+{
+  "appName": { "message": "Don't Buy — Stop the Impulse" },
+  "appDesc": {
+    "message": "Detects when you're looking at a product and reminds you that you might not need it. Syncs your list across browsers with your account."
+  },
+  "brand": { "message": "Don't Buy" },
+
+  "unkTitle": { "message": "Sure you need it?" },
+  "unkMsg": {
+    "message": "You're looking at a product you haven't flagged yet. Take a second before buying."
+  },
+  "blockTitle": { "message": "You already said you DON'T need it" },
+  "blockMsg": {
+    "message": "You marked this exact product as unnecessary. Did anything really change?"
+  },
+  "familyTitle": { "message": "Looks like something you already passed on" },
+  "familyMsg": {
+    "message": "Not identical, but very similar to a product you marked as unnecessary."
+  },
+  "likeTo": { "message": "Similar to:" },
+  "applyFamily": { "message": "Apply to the whole family ($1)" },
+  "similarProducts": { "message": "similar products" },
+  "needIt": { "message": "I need it" },
+  "dontNeedIt": { "message": "I don't need it" },
+  "seeAnyway": { "message": "Show anyway" },
+  "reminderBar": { "message": "Remember you said you didn't need it." },
+  "removeFromDont": { "message": "Remove from \"Don't need\"" },
+  "removeFromNeed": { "message": "Remove from \"Do need\"" },
+  "coveredTitle": { "message": "Done, we'll keep it hidden" },
+  "coveredMsg": {
+    "message": "The page stays blurred. If you really need it, tap “Show anyway”."
+  },
+  "close": { "message": "Close" },
+
+  "cartTitle": { "message": "Hold on a second" },
+  "cartMsg": {
+    "message": "You're in the cart with $1. Do you really need it all before paying?"
+  },
+  "cartItemOne": { "message": "$1 product" },
+  "cartItemMany": { "message": "$1 products" },
+  "cartItemsFallback": { "message": "what you've got" },
+  "cartFlagged": { "message": "You'd already said you DON'T need:" },
+  "cartThought": { "message": "I thought about it, continue" },
+
+  "enabledLabel": { "message": "Alerts on" },
+  "thisSite": { "message": "On this site" },
+  "activate": { "message": "Activate" },
+  "deactivate": { "message": "Deactivate" },
+  "statDont": { "message": "Don't need" },
+  "statNeed": { "message": "Do need" },
+  "statBrakes": { "message": "Stops" },
+  "manageLists": { "message": "Manage my lists →" },
+
+  "optIntro": {
+    "message": "Manage the products you flagged. They sync with your account."
+  },
+  "dismissedTitle": { "message": "Disabled sites" },
+  "dismissedHint": {
+    "message": "Don't Buy runs on any site where it detects products. You disabled these: it won't run there. Re-enable to use it again."
+  },
+  "dismissedEmpty": { "message": "You haven't disabled any site." },
+  "blockSection": { "message": "Don't need it" },
+  "allowSection": { "message": "Do need it" },
+  "clearAll": { "message": "Clear all" },
+  "blockEmpty": { "message": "You haven't marked anything as unnecessary yet." },
+  "allowEmpty": { "message": "You have no saved exceptions." },
+  "scopeFamily": { "message": "Family" },
+  "scopeProduct": { "message": "Product" },
+  "removeTitle": { "message": "Remove" },
+  "confirmClear": { "message": "Clear your list of products you don't need?" }
+}

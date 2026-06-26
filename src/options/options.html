@@ -9,36 +9,39 @@
   <body>
     <main>
       <header>
-        <h1>🛑 Don't Buy</h1>
-        <p>Gestioná los productos que marcaste. Se sincronizan con tu cuenta.</p>
+        <h1>🛑 <span data-i18n="brand">Don't Buy</span></h1>
+        <p data-i18n="optIntro">Gestioná los productos que marcaste. Se sincronizan con tu cuenta.</p>
       </header>
 
       <section>
         <div class="section-head">
-          <h2>Sitios desactivados <span id="dismissed-count" class="pill">0</span></h2>
+          <h2><span data-i18n="dismissedTitle">Sitios desactivados</span>
+            <span id="dismissed-count" class="pill">0</span></h2>
         </div>
-        <p class="hint">Don't Buy corre en cualquier sitio donde detecte
-          productos. Estos los desactivaste: no corre ahí. Reactivá para
-          volver a usarlo.</p>
+        <p class="hint" data-i18n="dismissedHint">Don't Buy corre en cualquier
+          sitio donde detecte productos. Estos los desactivaste: no corre ahí.
+          Reactivá para volver a usarlo.</p>
         <ul id="dismissedlist" class="list"></ul>
-        <p id="dismissed-empty" class="empty">No desactivaste ningún sitio.</p>
+        <p id="dismissed-empty" class="empty" data-i18n="dismissedEmpty">No desactivaste ningún sitio.</p>
       </section>
 
       <section>
         <div class="section-head">
-          <h2>No lo necesito <span id="block-count" class="pill">0</span></h2>
-          <button id="clear-all" class="danger-link">Vaciar todo</button>
+          <h2><span data-i18n="blockSection">No lo necesito</span>
+            <span id="block-count" class="pill">0</span></h2>
+          <button id="clear-all" class="danger-link" data-i18n="clearAll">Vaciar todo</button>
         </div>
         <ul id="blocklist" class="list"></ul>
-        <p id="block-empty" class="empty">Todavía no marcaste nada como innecesario.</p>
+        <p id="block-empty" class="empty" data-i18n="blockEmpty">Todavía no marcaste nada como innecesario.</p>
       </section>
 
       <section>
         <div class="section-head">
-          <h2>Sí lo necesito <span id="allow-count" class="pill">0</span></h2>
+          <h2><span data-i18n="allowSection">Sí lo necesito</span>
+            <span id="allow-count" class="pill">0</span></h2>
         </div>
         <ul id="allowlist" class="list"></ul>
-        <p id="allow-empty" class="empty">No tenés excepciones guardadas.</p>
+        <p id="allow-empty" class="empty" data-i18n="allowEmpty">No tenés excepciones guardadas.</p>
       </section>
     </main>
 

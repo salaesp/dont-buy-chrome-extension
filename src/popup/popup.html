@@ -9,11 +9,11 @@
   <body>
     <header>
       <span class="logo">🛑</span>
-      <h1>Don't Buy</h1>
+      <h1 data-i18n="brand">Don't Buy</h1>
     </header>
 
     <section class="toggle-row">
-      <span>Avisos activados</span>
+      <span data-i18n="enabledLabel">Avisos activados</span>
       <label class="switch">
         <input type="checkbox" id="enabled" />
         <span class="slider"></span>
@@ -22,29 +22,35 @@
 
     <section class="site-row">
       <div class="site-info">
-        <span class="site-label">En este sitio</span>
+        <span class="site-label" data-i18n="thisSite">En este sitio</span>
         <span id="site-host" class="site-host">—</span>
       </div>
-      <button id="toggle-site" class="site-btn">Activar</button>
+      <button id="toggle-site" class="site-btn">—</button>
+    </section>
+
+    <section class="product-row hidden" id="product-row">
+      <button id="remove-from-list" class="link">—</button>
     </section>
 
     <section class="stats">
       <div class="stat">
         <strong id="block-count">0</strong>
-        <span>No necesito</span>
+        <span data-i18n="statDont">No necesito</span>
       </div>
       <div class="stat">
         <strong id="allow-count">0</strong>
-        <span>Sí necesito</span>
+        <span data-i18n="statNeed">Sí necesito</span>
       </div>
       <div class="stat">
         <strong id="blocked-total">0</strong>
-        <span>Frenos</span>
+        <span data-i18n="statBrakes">Frenos</span>
       </div>
     </section>
 
     <footer>
-      <button id="open-options" class="link">Gestionar mis listas →</button>
+      <button id="open-options" class="link" data-i18n="manageLists">
+        Gestionar mis listas →
+      </button>
     </footer>
 
     <script src="../lib/product.js"></script>

@@ -1,5 +1,5 @@
 /*
- * sites.js — reglas específicas por tienda (Amazon, eBay, MercadoLibre).
+ * sites.js — reglas específicas por tienda (Amazon, eBay, MercadoLibre, Steam).
  * Corren ANTES que la heurística genérica del detector: son más fiables para
  * saber que estamos en una ficha de producto y para extraer título, precio y
  * categoría limpios. Si la regla no reconoce la página (no es producto),
@@ -172,7 +172,74 @@
     },
   };
 
-  const RULES = [amazon, ebay, mercadolibre];
+  // ---- Steam ----------------------------------------------------------------
+  // Steam muestra precios y botones "Add to Cart" en casi toda la tienda (home,
+  // listados, tags, wishlist, descubrimiento). Por eso SOLO tratamos como ficha
+  // las páginas de juego/DLC (/app/<id>/). El resto devuelve null y, al ser
+  // tienda conocida, el detector genérico no adivina ahí.
+  const steam = {
+    test: (h) => /(^|\.)steampowered\./i.test(h),
+    detect() {
+      if (!/\/app\/\d+/.test(location.pathname)) return null;
+      const title = firstText(["#appHubAppName", ".apphub_AppName"]);
+      if (!title) return null;
+      // Precio de la edición estándar: primer bloque de compra. (Juego gratis
+      // o "próximamente" => sin precio; igual vale como ficha por el título.)
+      const priceRoot =
+        document.querySelector(".game_area_purchase_game") || document;
+      const priceText = firstText(
+        [".discount_final_price", ".game_purchase_price"],
+        priceRoot
+      );
+      // Categoría: géneros declarados (Action, Indie) o las migas de la tienda.
+      const genres = Array.from(
+        document.querySelectorAll('#genresAndManufacturer a[href*="/genre/" i]')
+      )
+        .map((a) => a.textContent.trim())
+        .filter(Boolean)
+        .slice(0, 3)
+        .join(" ");
+      return {
+        title,
+        category: genres || breadcrumbFrom([".breadcrumbs a"]),
+        priceText,
+        currency: "",
+        source: "site:steam",
+        confidence: 0.98,
+      };
+    },
+    // Carrito de Steam (React, clases hasheadas): cada ítem tiene un botón
+    // "Remove"; las "Recommendations For You" de abajo no. Subimos desde cada
+    // "Remove" hasta la tarjeta y tomamos el título del alt de la imagen de
+    // cabecera (limpio). Anclar en role/texto/alt sobrevive a los rebuilds.
+    cart() {
+      if (!/\/cart/i.test(location.pathname)) return null;
+      const seen = new Set();
+      const items = [];
+      const removes = Array.from(
+        document.querySelectorAll('[role="button"]')
+      ).filter((b) => (b.textContent || "").trim() === "Remove");
+      for (const btn of removes) {
+        let node = btn;
+        let title = "";
+        for (let i = 0; i < 8 && node; i++, node = node.parentElement) {
+          const img = node.querySelector("img[alt]");
+          const alt = img && img.getAttribute("alt").trim();
+          if (alt) {
+            title = alt;
+            break;
+          }
+        }
+        if (title && title.length >= 2 && !seen.has(title)) {
+          seen.add(title);
+          items.push({ title });
+        }
+      }
+      return items.length ? { items } : null;
+    },
+  };
+
+  const RULES = [amazon, ebay, mercadolibre, steam];
 
   /** ¿Hay una regla específica para este host? (tienda conocida) */
   function handles(host) {

@@ -9,6 +9,20 @@
 
   const HOST_ID = "dont-buy-host";
 
+  // i18n: traduce según el idioma del navegador (en/es). Cae a la clave.
+  function t(key, subs) {
+    try {
+      return (
+        (global.chrome &&
+          chrome.i18n &&
+          chrome.i18n.getMessage(key, subs)) ||
+        key
+      );
+    } catch (_) {
+      return key;
+    }
+  }
+
   const STYLES = `
     :host { all: initial; }
     .wrap {
@@ -25,6 +39,20 @@
       animation: db-in .18s ease-out;
     }
     @keyframes db-in { from { opacity: 0; transform: translate(-50%,-8px); } to { opacity: 1; transform: translateX(-50%); } }
+    /* Primera visita: cae desde el techo (arranca despacio, acelera) y rebota
+       sobre un piso imaginario. Ease-in al caer, ease-out al rebotar. */
+    .wrap.bounce { animation: db-drop .95s both; }
+    @keyframes db-drop {
+      0%   { opacity: 0; transform: translate(-50%, -360px); animation-timing-function: cubic-bezier(.5,.04,.7,.2); }
+      8%   { opacity: 1; }
+      55%  { transform: translate(-50%, 0); animation-timing-function: cubic-bezier(.2,.7,.4,1); }
+      70%  { transform: translate(-50%, -26px); animation-timing-function: cubic-bezier(.6,.04,.8,.2); }
+      82%  { transform: translate(-50%, 0); animation-timing-function: cubic-bezier(.2,.7,.4,1); }
+      90%  { transform: translate(-50%, -9px); animation-timing-function: cubic-bezier(.6,.04,.8,.2); }
+      96%  { transform: translate(-50%, 0); animation-timing-function: cubic-bezier(.2,.7,.4,1); }
+      98%  { transform: translate(-50%, -3px); }
+      100% { transform: translate(-50%, 0); }
+    }
     .bar { height: 6px; }
     .bar.unknown { background: #f59e0b; }
     .bar.block { background: #ef4444; }
@@ -64,22 +92,14 @@
   `;
 
   const COPY = {
-    unknown: {
-      icon: "🤔",
-      title: "¿Seguro que lo necesitás?",
-      msg: "Estás viendo un producto que todavía no marcaste. Tomate un segundo antes de comprar.",
-    },
+    unknown: { icon: "🤔", title: t("unkTitle"), msg: t("unkMsg") },
     // status block, coincidencia exacta del mismo producto.
-    block: {
-      icon: "🛑",
-      title: "Ya dijiste que NO lo necesitás",
-      msg: "Marcaste exactamente este producto como innecesario. ¿De verdad cambió algo?",
-    },
+    block: { icon: "🛑", title: t("blockTitle"), msg: t("blockMsg") },
     // status block, parecido a algo ya descartado (familia).
     "block-family": {
       icon: "👀",
-      title: "Se parece a algo que ya descartaste",
-      msg: "No es idéntico, pero es muy parecido a un producto que marcaste como innecesario.",
+      title: t("familyTitle"),
+      msg: t("familyMsg"),
     },
   };
 
@@ -87,6 +107,10 @@
 
   // Overlay de pantalla completa (blur de toda la página) para "block".
   let overlayEl = null;
+
+  // Barra recordatoria arriba de todo (empuja el contenido hacia abajo).
+  let topBarEl = null;
+  let prevHtmlMarginTop = null;
 
   function clearOverlay() {
     if (overlayEl && overlayEl.parentNode) {
@@ -101,10 +125,56 @@
     hostEl = null;
   }
 
-  // Saca todo: cartel + overlay (p. ej. al cambiar de página en SPA).
+  function clearTopBar() {
+    if (topBarEl && topBarEl.parentNode) {
+      topBarEl.parentNode.removeChild(topBarEl);
+    }
+    topBarEl = null;
+    if (prevHtmlMarginTop !== null) {
+      document.documentElement.style.marginTop = prevHtmlMarginTop;
+      prevHtmlMarginTop = null;
+    }
+  }
+
+  // Barra fija arriba de todo + empuja la página hacia abajo (margin en <html>).
+  // Solo recordatorio, sin acciones. Se va al cambiar de página.
+  function showTopReminder() {
+    clearTopBar();
+    const BAR_H = 40;
+    topBarEl = document.createElement("div");
+    topBarEl.setAttribute("data-dont-buy-bar", "1");
+    const shadow = topBarEl.attachShadow({ mode: "open" });
+    const style = document.createElement("style");
+    style.textContent = `
+      :host { all: initial; }
+      .bar {
+        position: fixed; top: 0; left: 0; right: 0; height: ${BAR_H}px;
+        z-index: 2147483647;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        background: #ef4444; color: #fff;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        font-size: 13px; font-weight: 600; padding: 0 12px; box-sizing: border-box;
+        box-shadow: 0 2px 10px rgba(0,0,0,.2);
+        animation: db-bar .2s ease-out;
+      }
+      @keyframes db-bar { from { transform: translateY(-100%); } to { transform: none; } }
+    `;
+    shadow.appendChild(style);
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.textContent = "🛑 " + t("reminderBar");
+    shadow.appendChild(bar);
+
+    prevHtmlMarginTop = document.documentElement.style.marginTop || "";
+    document.documentElement.style.marginTop = BAR_H + "px";
+    (document.documentElement || document.body).appendChild(topBarEl);
+  }
+
+  // Saca todo: cartel + overlay + barra (p. ej. al cambiar de página en SPA).
   function remove() {
     removeCard();
     clearOverlay();
+    clearTopBar();
   }
 
   /**
@@ -117,11 +187,13 @@
    * @param {object} signature
    * @param {{match?:object, reason?:string, score?:number}} info
    * @param {{onNeed:(scope:string)=>void, onSkip:(scope:string)=>void}} handlers
+   * @param {{confirmed?:boolean}} [opts]  si confirmed, abre ya en estado tapado
    */
-  function showBlockOverlay(status, signature, info, handlers) {
+  function showBlockOverlay(status, signature, info, handlers, opts) {
     clearOverlay();
     info = info || {};
     handlers = handlers || {};
+    opts = opts || {};
     const isFamily = info.reason === "family";
     const copy = (isFamily && COPY["block-family"]) || COPY.block;
     const matchTitle =
@@ -143,7 +215,6 @@
         -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
         animation: db-fade .18s ease-out;
         font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-        cursor: pointer;
       }
       @keyframes db-fade { from { opacity: 0; } to { opacity: 1; } }
       .card {
@@ -187,43 +258,65 @@
           <p class="prod">${escapeHtml(signature.title)}</p>
           ${
             matchTitle
-              ? `<p class="like">Se parece a: <b>${escapeHtml(matchTitle)}</b>${
+              ? `<p class="like">${t("likeTo")} <b>${escapeHtml(
+                  matchTitle
+                )}</b>${
                   pct != null ? ` <span class="pct">(${pct}%)</span>` : ""
                 }</p>`
               : ""
           }
           <label class="opts">
             <input type="checkbox" class="fam" />
-            Aplicar a toda la familia (${escapeHtml(
-              signature.category || "productos similares"
-            )})
+            ${t("applyFamily", [
+              escapeHtml(signature.category || t("similarProducts")),
+            ])}
           </label>
           <div class="row" style="margin-top:14px">
-            <button class="need">Lo necesito</button>
-            <button class="skip">No lo necesito</button>
+            <button class="need">${t("needIt")}</button>
+            <button class="skip">${t("dontNeedIt")}</button>
           </div>
-          <button class="reveal">Ver igual</button>
+          <button class="reveal">${t("seeAnyway")}</button>
         </div>
       </div>
     `;
     shadow.appendChild(scrim);
 
     const fam = shadow.querySelector(".fam");
+
+    // Estado "tapado": oculta los botones de decisión y deja solo "Ver igual".
+    function applyCovered() {
+      const body = shadow.querySelector(".body");
+      body.querySelector(".title").textContent = t("coveredTitle");
+      body.querySelector(".msg").textContent = t("coveredMsg");
+      const optsEl = body.querySelector(".opts");
+      const rowEl = body.querySelector(".row");
+      if (optsEl) optsEl.style.display = "none";
+      if (rowEl) rowEl.style.display = "none";
+    }
+
+    // "Lo necesito": lo permite y revela la página.
     shadow.querySelector(".need").addEventListener("click", () => {
       if (handlers.onNeed) handlers.onNeed(fam.checked ? "family" : "product");
       clearOverlay();
     });
+    // "No lo necesito": lo reafirma y DEJA la página tapada (no revela). El
+    // único escape consciente queda en "Ver igual".
     shadow.querySelector(".skip").addEventListener("click", () => {
       if (handlers.onSkip) handlers.onSkip(fam.checked ? "family" : "product");
+      applyCovered();
+    });
+    // "Ver igual": escape explícito (revela sin cambiar las listas).
+    // "Ver igual": revela la página pero deja una barra recordatoria arriba.
+    shadow.querySelector(".reveal").addEventListener("click", () => {
       clearOverlay();
+      showTopReminder();
     });
-    shadow.querySelector(".reveal").addEventListener("click", clearOverlay);
-    // Tocar el fondo (fuera de la tarjeta) también revela.
-    scrim.addEventListener("click", (e) => {
-      if (e.target === scrim) clearOverlay();
-    });
+    // Nota: tocar el fondo NO revela; la página queda tapada a propósito.
 
     (document.documentElement || document.body).appendChild(overlayEl);
+
+    // Abre ya tapado (cuando recién marcaste "no lo necesito" en el banner suave).
+    if (opts.confirmed) applyCovered();
   }
 
   /**
@@ -253,18 +346,19 @@
     shadow.appendChild(style);
 
     const wrap = document.createElement("div");
-    wrap.className = "wrap";
+    // Primera visita (producto nuevo) cae rebotando desde el techo.
+    wrap.className = status === "unknown" ? "wrap bounce" : "wrap";
     const barClass = isFamily ? "block-family" : status;
     wrap.innerHTML = `
       <div class="bar ${barClass}"></div>
-      <button class="close" title="Cerrar">×</button>
+      <button class="close" title="${t("close")}">×</button>
       <div class="body">
         <p class="title">${copy.icon} ${copy.title}</p>
         <p class="msg">${copy.msg}</p>
         ${
           matchTitle
-            ? `<p class="like">Se parece a: <b>${escapeHtml(matchTitle)}</b>${
-                pct != null ? ` <span class="pct">(${pct}% de parecido)</span>` : ""
+            ? `<p class="like">${t("likeTo")} <b>${escapeHtml(matchTitle)}</b>${
+                pct != null ? ` <span class="pct">(${pct}%)</span>` : ""
               }</p>`
             : ""
         }
@@ -277,13 +371,13 @@
     }</p>
         <label class="opts">
           <input type="checkbox" class="fam" />
-          Aplicar a toda la familia (${escapeHtml(
-            signature.category || "productos similares"
-          )})
+          ${t("applyFamily", [
+            escapeHtml(signature.category || t("similarProducts")),
+          ])}
         </label>
         <div class="row" style="margin-top:12px">
-          <button class="need">Lo necesito</button>
-          <button class="skip">No lo necesito</button>
+          <button class="need">${t("needIt")}</button>
+          <button class="skip">${t("dontNeedIt")}</button>
         </div>
       </div>
     `;
@@ -329,17 +423,17 @@
     const wrap = document.createElement("div");
     wrap.className = "wrap";
     const items = total
-      ? `${total} producto${total === 1 ? "" : "s"}`
-      : "lo que tenés";
+      ? t(total === 1 ? "cartItemOne" : "cartItemMany", [String(total)])
+      : t("cartItemsFallback");
     wrap.innerHTML = `
       <div class="bar ${hasFlag ? "cart-flagged" : "cart"}"></div>
-      <button class="close" title="Cerrar">×</button>
+      <button class="close" title="${t("close")}">×</button>
       <div class="body">
-        <p class="title">🧘 Pará un segundo</p>
-        <p class="msg">Estás en el carrito con ${items}. ¿De verdad necesitás todo antes de pagar?</p>
+        <p class="title">🧘 ${t("cartTitle")}</p>
+        <p class="msg">${t("cartMsg", [items])}</p>
         ${
           hasFlag
-            ? `<div class="flag">⚠️ Ya habías dicho que <b>NO</b> necesitabas:
+            ? `<div class="flag">⚠️ ${t("cartFlagged")}
                 <ul>${flagged
                   .slice(0, 6)
                   .map((f) => `<li>${escapeHtml(f.title)}</li>`)
@@ -347,7 +441,7 @@
             : ""
         }
         <div class="row" style="margin-top:4px">
-          <button class="need">Lo pensé, sigo</button>
+          <button class="need">${t("cartThought")}</button>
         </div>
       </div>
     `;

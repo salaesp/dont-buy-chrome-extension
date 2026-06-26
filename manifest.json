@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Don't Buy — freno a compras impulsivas",
+  "name": "__MSG_appName__",
   "version": "0.1.0",
-  "description": "Detecta cuando estás viendo un producto y te avisa que quizá no lo necesitás. Sincroniza tu lista entre navegadores con tu cuenta.",
+  "description": "__MSG_appDesc__",
+  "default_locale": "en",
   "permissions": ["storage", "activeTab"],
   "background": {
     "service_worker": "src/background/service-worker.js"
