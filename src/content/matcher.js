@@ -117,8 +117,8 @@
     };
 
     if (verdict.status === "allow") {
-      sendVerdict("none");
-      return; // ya dijo que lo necesita
+      sendVerdict("allow"); // ✓ ya dijo que lo quiere
+      return;
     }
 
     shown = true;
@@ -129,6 +129,8 @@
     };
     const onNeed = (scope) => {
       send({ type: "addAllow", signature: stripForStorage(signature), scope });
+      lastProduct = { key: signature.key, title: signature.title, status: "allow" };
+      sendVerdict("allow"); // ✓ acaba de decir que lo quiere
     };
     const addBlock = (scope) => {
       send({ type: "addBlock", signature: stripForStorage(signature), scope });

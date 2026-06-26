@@ -24,15 +24,20 @@ async function getState() {
   };
 }
 
-// Badge POR PESTAÑA: marca "✕" rojo solo si el producto que estás viendo en
-// esa tab es uno que ya descartaste. Vacío en el resto.
+// Badge POR PESTAÑA según el producto que estás viendo en esa tab:
+//   "block" => ✕ rojo  (ya lo descartaste)
+//   "allow" => ✓ teal  (dijiste que lo querés)
+//   resto   => vacío
 async function setTabBadge(tabId, status) {
   if (tabId == null) return;
   try {
-    const text = status === "block" ? "✕" : "";
+    const text = status === "block" ? "✕" : status === "allow" ? "✓" : "";
     await chrome.action.setBadgeText({ tabId, text });
     if (text) {
-      await chrome.action.setBadgeBackgroundColor({ tabId, color: "#ef4444" });
+      await chrome.action.setBadgeBackgroundColor({
+        tabId,
+        color: status === "allow" ? "#14b8a6" : "#ef4444",
+      });
     }
   } catch (_) {
     /* la tab pudo cerrarse */
