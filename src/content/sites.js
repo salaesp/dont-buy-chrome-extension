@@ -56,9 +56,14 @@
       ]);
       return {
         title: title || text("h1 #title") || document.title,
-        category: breadcrumbFrom([
-          "#wayfinding-breadcrumbs_feature_div ul li a",
-        ]),
+        category:
+          breadcrumbFrom([
+            "#wayfinding-breadcrumbs_feature_div ul li a",
+            "#wayfinding-breadcrumbs_container ul li a",
+          ]) ||
+          // Páginas sin breadcrumb (p. ej. dispositivos propios de Amazon):
+          // caemos al "departamento" del nav superior.
+          text("#nav-subnav a.nav-a"),
         priceText,
         currency: text(".a-price-symbol"),
         source: "site:amazon",
