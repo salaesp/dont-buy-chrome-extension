@@ -37,26 +37,31 @@ jobs:
           echo "ZIP=$ZIP" >> "$GITHUB_ENV"
           unzip -l "$ZIP"
 
-      # Usa el mensaje del tag anotado como cuerpo del release. Si el tag es
-      # liviano (sin mensaje), cae a las notas autogeneradas.
-      - name: Extract tag message
-        id: notes
+      # Cuerpo del release = mensaje del tag anotado. El checkout deja un tag
+      # liviano (apunta al commit), así que traemos el objeto anotado para que
+      # %(contents) sea el mensaje del TAG y no el del commit.
+      - name: Notes from tag annotation
         run: |
-          # El checkout deja un tag liviano (apunta al commit). Traemos el
-          # objeto anotado para que %(contents) sea el mensaje del TAG.
           git fetch --force origin \
             "refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" || true
-          BODY=$(git for-each-ref "refs/tags/${GITHUB_REF_NAME}" --format='%(contents)')
-          if [ -n "$BODY" ]; then
-            echo "$BODY" > RELEASE_NOTES.md
-            echo "has_body=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "has_body=false" >> "$GITHUB_OUTPUT"
-          fi
+          git for-each-ref "refs/tags/${GITHUB_REF_NAME}" \
+            --format='%(contents)' > RELEASE_NOTES.md
+          echo "----- notes -----"; cat RELEASE_NOTES.md
 
-      - name: Create release with zip
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ env.ZIP }}
-          body_path: ${{ steps.notes.outputs.has_body == 'true' && 'RELEASE_NOTES.md' || '' }}
-          generate_release_notes: ${{ steps.notes.outputs.has_body != 'true' }}
+      # gh crea o EDITA el release (softprops no sobreescribe el body de uno
+      # existente). Adjunta el zip con --clobber. Usa el GITHUB_TOKEN del runner.
+      - name: Publish release with zip
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -s RELEASE_NOTES.md ]; then
+            NOTES=(--notes-file RELEASE_NOTES.md)
+          else
+            NOTES=(--generate-notes)
+          fi
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release edit "$GITHUB_REF_NAME" "${NOTES[@]}"
+            gh release upload "$GITHUB_REF_NAME" "$ZIP" --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" "$ZIP" "${NOTES[@]}"
+          fi
