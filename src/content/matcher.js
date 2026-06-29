@@ -117,6 +117,8 @@
     };
 
     if (verdict.status === "allow") {
+      // Registra el precio visto (historial de "lo quiero" para ir al más barato).
+      send({ type: "recordView", signature: stripForStorage(signature) });
       sendVerdict("allow"); // ✓ ya dijo que lo quiere
       return;
     }
@@ -140,11 +142,20 @@
     // centrado. Robusto entre sitios (no depende del layout). "unknown"
     // (producto nuevo) usa el cartel suave arriba-centrado.
     if (verdict.status === "block") {
+      // Anti-fatiga: si ya mostramos el overlay de este producto hace < 2h, no
+      // lo tapamos de nuevo (badge ✕ sí, overlay no).
+      const key = (verdict.match && verdict.match.key) || signature.key;
+      const cd = await send({ type: "shouldCooldown", key });
+      if (cd && cd.cooldown) {
+        sendVerdict("block");
+        return;
+      }
       // onSkip solo reafirma; el banner deja la página tapada por su cuenta.
       Banner.showBlockOverlay(verdict.status, signature, info, {
         onNeed,
         onSkip: addBlock,
       });
+      send({ type: "markShown", key });
       sendVerdict("block");
     } else {
       // Primera vez ("unknown"): si dice "no lo necesito", lo guarda y abre el
@@ -160,6 +171,7 @@
             { onNeed },
             { confirmed: true }
           );
+          send({ type: "markShown", key: signature.key });
           sendVerdict("block");
         },
       });
@@ -168,7 +180,9 @@
   }
 
   // Solo guardamos lo necesario (respeta el límite de chrome.storage.sync).
+  // Incluye precio numérico (centavos) + moneda + url para ahorro/historial.
   function stripForStorage(sig) {
+    const price = Product.parsePrice(sig.priceText, sig.currency);
     return {
       key: sig.key,
       domain: sig.domain,
@@ -176,6 +190,9 @@
       category: sig.category,
       categoryNorm: sig.categoryNorm,
       tokens: sig.tokens,
+      url: sig.url || "",
+      price: price ? price.amount : null,
+      currency: price ? price.currency : sig.currency || "",
     };
   }
 
@@ -187,28 +204,26 @@
     await run();
   }
 
-  // Muchas tiendas son SPA: el producto cambia sin recargar. Re-evaluamos al
-  // detectar cambios de URL.
+  // SPA: el producto cambia sin recargar. Parchear history.pushState desde el
+  // content script NO sirve (el router de la página corre en otro mundo JS), así
+  // que detectamos la navegación con un poll liviano de location.href (comparar
+  // un string es más barato que observar todo el DOM) + popstate.
   let lastUrl = location.href;
-  const observer = new MutationObserver(() => {
-    if (location.href !== lastUrl) {
-      lastUrl = location.href;
-      shown = false;
-      Banner.remove();
-      tick();
-    }
-  });
-  observer.observe(document, { subtree: true, childList: true });
+  function checkUrl() {
+    if (location.href === lastUrl) return;
+    lastUrl = location.href;
+    shown = false;
+    Banner.remove();
+    tick();
+  }
+  window.addEventListener("popstate", checkUrl);
 
-  // SPAs (Next/React) hidratan después de document_idle: el botón de compra y
-  // el precio pueden no existir en el primer intento. Reintentamos un rato.
+  // Un solo intervalo: re-evalúa al cambiar de URL (toda la vida de la página) y
+  // reintenta unas pocas veces mientras la SPA hidrata el precio/título.
   tick();
   let tries = 0;
-  const retry = setInterval(() => {
-    if (shown || ++tries > 8) {
-      clearInterval(retry);
-      return;
-    }
-    tick();
-  }, 700);
+  setInterval(() => {
+    checkUrl();
+    if (!shown && ++tries <= 6) tick();
+  }, 600);
 })();

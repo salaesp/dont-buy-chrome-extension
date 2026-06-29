@@ -208,6 +208,93 @@
     });
   }
 
+  /** Resuelve la moneda: arg explícito o símbolo en el texto. "$" solo => "". */
+  function resolveCurrency(priceText, currency) {
+    if (currency) return String(currency).toUpperCase().trim();
+    const t = String(priceText || "");
+    if (/US\$|\bUSD\b/i.test(t)) return "USD";
+    if (/€|\bEUR\b/i.test(t)) return "EUR";
+    if (/£|\bGBP\b/i.test(t)) return "GBP";
+    if (/\bARS\b/i.test(t)) return "ARS";
+    return ""; // "$" solo es ambiguo (USD/ARS/MXN): no adivinamos
+  }
+
+  /**
+   * Parsea un precio de texto a centavos enteros + moneda.
+   * Decimal EU/US: el separador que aparece ÚLTIMO es el decimal; el otro son
+   * miles y se borra. Un único separador seguido de 3 dígitos se asume miles.
+   * @returns {{amount:number, currency:string} | null}
+   */
+  function parsePrice(priceText, currency) {
+    const cleaned = String(priceText || "").replace(/[^\d.,-]/g, "");
+    if (!/\d/.test(cleaned)) return null;
+    const lastDot = cleaned.lastIndexOf(".");
+    const lastComma = cleaned.lastIndexOf(",");
+    let numeric;
+    if (lastDot === -1 && lastComma === -1) {
+      numeric = cleaned;
+    } else if ((lastDot === -1) !== (lastComma === -1)) {
+      // un solo tipo de separador: ¿decimal o miles?
+      const sep = lastDot === -1 ? "," : ".";
+      const after = cleaned.slice(cleaned.lastIndexOf(sep) + 1);
+      numeric =
+        after.length === 3
+          ? cleaned.split(sep).join("") // miles
+          : cleaned.replace(sep, "."); // decimal
+    } else {
+      // ambos presentes: el último es el decimal, el otro son miles
+      const decSep = lastDot > lastComma ? "." : ",";
+      const thouSep = decSep === "." ? "," : ".";
+      numeric = cleaned.split(thouSep).join("").replace(decSep, ".");
+    }
+    const value = parseFloat(numeric);
+    if (!isFinite(value)) return null;
+    return {
+      amount: Math.round(value * 100),
+      currency: resolveCurrency(priceText, currency),
+    };
+  }
+
+  /** Formatea centavos a "11.99 USD" (o "11.99" si no hay moneda). */
+  function formatMoney(cents, currency) {
+    const s = ((Number(cents) || 0) / 100).toFixed(2);
+    return currency ? `${s} ${currency}` : s;
+  }
+
+  /**
+   * Agrega un punto al historial de precios SOLO si cambió respecto del último
+   * (mismo amount+currency => devuelve el mismo array, evita escrituras). Trunca
+   * a los últimos `cap`.
+   */
+  function appendPriceHistory(history, point, cap = 10) {
+    const list = Array.isArray(history) ? history : [];
+    if (!point || typeof point.amount !== "number") return list;
+    const last = list[list.length - 1];
+    if (last && last.amount === point.amount && last.currency === point.currency) {
+      return list;
+    }
+    const next = list.concat([point]);
+    return next.length > cap ? next.slice(next.length - cap) : next;
+  }
+
+  /**
+   * Precio más barato visto, comparando SOLO dentro de la moneda del último
+   * punto (no mezcla monedas). @returns {{amount,currency,url}|null}
+   */
+  function cheapestSeen(history) {
+    const list = Array.isArray(history) ? history : [];
+    if (!list.length) return null;
+    const cur = list[list.length - 1].currency;
+    let best = null;
+    for (const p of list) {
+      if (p.currency !== cur || typeof p.amount !== "number") continue;
+      if (!best || p.amount < best.amount) best = p;
+    }
+    return best
+      ? { amount: best.amount, currency: best.currency, url: best.url || "" }
+      : null;
+  }
+
   const api = {
     normalizeText,
     tokenize,
@@ -221,6 +308,10 @@
     isFamilyMatch,
     bestMatch,
     evaluate,
+    parsePrice,
+    formatMoney,
+    appendPriceHistory,
+    cheapestSeen,
     FAMILY_THRESHOLD,
   };
 

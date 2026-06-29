@@ -87,6 +87,20 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         case "clearAll":
           sendResponse({ ok: true, data: await Storage.clearAll() });
           break;
+        case "shouldCooldown":
+          sendResponse({
+            ok: true,
+            cooldown: await Storage.shouldCooldown(message.key),
+          });
+          break;
+        case "markShown":
+          await Storage.markShown(message.key);
+          sendResponse({ ok: true });
+          break;
+        case "recordView":
+          await Storage.recordView(message.signature);
+          sendResponse({ ok: true });
+          break;
         default:
           sendResponse({ ok: false, error: "unknown message" });
       }
@@ -100,13 +114,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 async function init() {
   try {
-    await Storage.migrateLegacy();
+    await Storage.migrate();
   } catch (_) {
     /* ignore */
   }
 }
 
-chrome.runtime.onInstalled.addListener(init);
+chrome.runtime.onInstalled.addListener((details) => {
+  init();
+  // Primera instalación: abre la pantalla de bienvenida.
+  if (details && details.reason === "install") {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL("src/welcome/welcome.html"),
+    });
+  }
+});
 chrome.runtime.onStartup.addListener(init);
 
 // Al navegar, limpia el badge de esa tab; el content script lo vuelve a poner

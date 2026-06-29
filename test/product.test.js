@@ -137,3 +137,45 @@ test("hostMatches: lista blanca por dominio/subdominio/trozo", () => {
 test("hostMatches: lista vacía => no corre en ningún lado", () => {
   assert.equal(P.hostMatches("amazon.com", []), false);
 });
+
+test("parsePrice: formatos US/EU, símbolos y miles vs decimal", () => {
+  assert.deepEqual(P.parsePrice("$11.99 USD", "USD"), { amount: 1199, currency: "USD" });
+  assert.deepEqual(P.parsePrice("US$ 50", ""), { amount: 5000, currency: "USD" });
+  assert.deepEqual(P.parsePrice("€1.234,56", ""), { amount: 123456, currency: "EUR" });
+  assert.deepEqual(P.parsePrice("ARS 1.500,00", "ARS"), { amount: 150000, currency: "ARS" });
+  assert.deepEqual(P.parsePrice("19", ""), { amount: 1900, currency: "" });
+  assert.equal(P.parsePrice("1,500", "USD").amount, 150000); // miles
+  assert.equal(P.parsePrice("1,50", "EUR").amount, 150); // decimal
+  assert.equal(P.parsePrice("", ""), null);
+  assert.equal(P.parsePrice("Sin precio", ""), null);
+  assert.equal(P.parsePrice("10", "usd").currency, "USD"); // moneda en mayúscula
+});
+
+test("formatMoney: centavos a string con moneda", () => {
+  assert.equal(P.formatMoney(1199, "USD"), "11.99 USD");
+  assert.equal(P.formatMoney(5000, ""), "50.00");
+});
+
+test("appendPriceHistory: agrega al cambiar, no-op si igual, cap 10", () => {
+  const p = (a) => ({ amount: a, currency: "USD", url: "u", at: 1 });
+  let h = [];
+  h = P.appendPriceHistory(h, p(100));
+  assert.equal(h.length, 1);
+  const same = P.appendPriceHistory(h, p(100));
+  assert.equal(same, h); // mismo array (sin cambios)
+  h = P.appendPriceHistory(h, p(90));
+  assert.equal(h.length, 2);
+  for (let i = 0; i < 12; i++) h = P.appendPriceHistory(h, p(i));
+  assert.equal(h.length, 10); // truncado
+  assert.equal(h[h.length - 1].amount, 11); // el más nuevo
+});
+
+test("cheapestSeen: mínimo por moneda, ignora otras, null vacío", () => {
+  assert.equal(P.cheapestSeen([]), null);
+  const h = [
+    { amount: 500, currency: "USD", url: "a" },
+    { amount: 200, currency: "EUR", url: "b" }, // otra moneda: se ignora
+    { amount: 300, currency: "USD", url: "c" },
+  ];
+  assert.deepEqual(P.cheapestSeen(h), { amount: 300, currency: "USD", url: "c" });
+});

@@ -20,6 +20,13 @@
   const STATS_KEY = "stats";
   const HOSTS_KEY = "hosts";
   const DISMISSED_KEY = "dismissed";
+  const SCHEMA_KEY = "schemaVersion";
+  const SCHEMA_VERSION = 2;
+
+  // Cooldown anti-fatiga: vive en chrome.storage.local (por dispositivo, sin
+  // límite de escrituras) — un mapa {key: lastShownAt}.
+  const COOLDOWN_KEY = "cooldown";
+  const COOLDOWN_MS = 2 * 60 * 60 * 1000; // 2 horas
 
   // `hosts` = sitios donde corre (semilla + autodescubiertos al encontrar
   // productos). `dismissed` = sitios que el usuario desactivó (no corre ni se
@@ -28,10 +35,21 @@
 
   const DEFAULTS = {
     settings: { enabled: true },
-    stats: { blocked: 0 }, // cuántas veces el usuario dijo "no lo necesito"
+    // blocked = cuántas veces dijo "no lo necesito"; saved = ahorro acumulado
+    // por moneda en centavos {USD: 1199, ...}.
+    stats: { blocked: 0, saved: {} },
     hosts: DEFAULT_HOSTS.slice(),
     dismissed: [],
   };
+
+  // Normaliza el objeto stats para que siempre tenga blocked y saved.
+  function normStats(s) {
+    const st = s && typeof s === "object" ? s : {};
+    return {
+      blocked: st.blocked || 0,
+      saved: st.saved && typeof st.saved === "object" ? st.saved : {},
+    };
+  }
 
   function syncGet(query) {
     return new Promise((resolve) => {
@@ -64,6 +82,8 @@
       category: sig.category || "",
       scope: scope === "family" ? "family" : "product",
       addedAt: Date.now(),
+      price: typeof sig.price === "number" ? sig.price : null, // centavos
+      currency: sig.currency || "",
     };
   }
 
@@ -115,7 +135,7 @@
       blocklist,
       allowlist,
       settings: data.settings || { ...DEFAULTS.settings },
-      stats: data.stats || { ...DEFAULTS.stats },
+      stats: normStats(data.stats),
       hosts: Array.isArray(data.hosts) ? data.hosts : DEFAULT_HOSTS.slice(),
       dismissed: Array.isArray(data.dismissed) ? data.dismissed : [],
     };
@@ -130,7 +150,7 @@
     ]);
     return {
       settings: data.settings || { ...DEFAULTS.settings },
-      stats: data.stats || { ...DEFAULTS.stats },
+      stats: normStats(data.stats),
       hosts: Array.isArray(data.hosts) ? data.hosts : DEFAULT_HOSTS.slice(),
       dismissed: Array.isArray(data.dismissed) ? data.dismissed : [],
     };
@@ -178,12 +198,22 @@
   }
 
   async function addBlock(sig, scope) {
-    const { stats } = await getSmall();
     const entry = entryFromSignature(sig, scope);
-    await syncSet({
-      [BLOCK_PREFIX + entry.key]: entry,
-      [STATS_KEY]: { ...stats, blocked: (stats.blocked || 0) + 1 },
-    });
+    const k = BLOCK_PREFIX + entry.key;
+    const existing = await syncGet(k);
+    const partial = { [k]: entry };
+    // Dedupe: solo contamos y sumamos ahorro la PRIMERA vez que se descarta
+    // (re-afirmar no debe inflar las stats).
+    if (!existing[k]) {
+      const stats = normStats((await getSmall()).stats);
+      const saved = { ...stats.saved };
+      if (typeof sig.price === "number" && sig.price > 0) {
+        const cur = sig.currency || "";
+        saved[cur] = (saved[cur] || 0) + sig.price;
+      }
+      partial[STATS_KEY] = { blocked: (stats.blocked || 0) + 1, saved };
+    }
+    await syncSet(partial);
     // Si lo bloquea, ya no debería estar permitido.
     await syncRemove(ALLOW_PREFIX + entry.key);
     return getAll();
@@ -259,8 +289,77 @@
     await syncRemove(["blocklist", "allowlist"]);
   }
 
+  // Versionado de esquema: idempotente y forward-safe (nunca baja de versión).
+  // v2 agrega campos de precio/ahorro/historial, todos aditivos y nullable, así
+  // que no requiere reescribir entradas: solo migra el formato viejo y sella.
+  async function migrate() {
+    const data = await syncGet([SCHEMA_KEY]);
+    const v = typeof data[SCHEMA_KEY] === "number" ? data[SCHEMA_KEY] : 0;
+    if (v >= SCHEMA_VERSION) return;
+    if (v < 1) await migrateLegacy();
+    await syncSet({ [SCHEMA_KEY]: SCHEMA_VERSION });
+  }
+
+  function localGet(query) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get(query, (data) => resolve(data || {}));
+    });
+  }
+
+  function localSet(partial) {
+    return new Promise((resolve) => {
+      chrome.storage.local.set(partial, () => resolve());
+    });
+  }
+
+  // ¿El overlay de este producto está en cooldown (mostrado hace < 2h)?
+  async function shouldCooldown(key) {
+    if (!key) return false;
+    const data = await localGet([COOLDOWN_KEY]);
+    const map = data[COOLDOWN_KEY] || {};
+    const t = map[key];
+    return typeof t === "number" && Date.now() - t < COOLDOWN_MS;
+  }
+
+  // Marca que se mostró el overlay de este producto (y poda vencidos).
+  async function markShown(key) {
+    if (!key) return;
+    const data = await localGet([COOLDOWN_KEY]);
+    const map = data[COOLDOWN_KEY] || {};
+    const now = Date.now();
+    for (const k of Object.keys(map)) {
+      if (now - map[k] >= COOLDOWN_MS) delete map[k];
+    }
+    map[key] = now;
+    await localSet({ [COOLDOWN_KEY]: map });
+  }
+
+  // Registra un precio visto para un producto de la allowlist ("lo quiero").
+  // Solo escribe si el precio cambió (evita el límite de escrituras de sync).
+  async function recordView(sig) {
+    const P = global.DontBuyProduct;
+    if (!sig || !sig.key || !P || typeof sig.price !== "number") return;
+    const k = ALLOW_PREFIX + sig.key;
+    const data = await syncGet(k);
+    const entry = data[k];
+    if (!entry) return; // historial solo para lo que SÍ querés
+    const prevHistory = entry.history || [];
+    const point = {
+      amount: sig.price,
+      currency: sig.currency || "",
+      url: String(sig.url || "").slice(0, 200), // sin query, acotado
+      at: Date.now(),
+    };
+    const history = P.appendPriceHistory(prevHistory, point);
+    if (history === prevHistory) return; // precio sin cambios: no escribimos
+    await syncSet({
+      [k]: { ...entry, price: sig.price, currency: sig.currency || "", history },
+    });
+  }
+
   global.DontBuyStorage = {
     DEFAULTS,
+    SCHEMA_VERSION,
     getAll,
     addBlock,
     addAllow,
@@ -270,5 +369,9 @@
     removeHost,
     clearAll,
     migrateLegacy,
+    migrate,
+    shouldCooldown,
+    markShown,
+    recordView,
   };
 })(typeof self !== "undefined" ? self : this);
