@@ -21,7 +21,7 @@
   const HOSTS_KEY = "hosts";
   const DISMISSED_KEY = "dismissed";
   const SCHEMA_KEY = "schemaVersion";
-  const SCHEMA_VERSION = 2;
+  const SCHEMA_VERSION = 3;
 
   // Cooldown anti-fatiga: vive en chrome.storage.local (por dispositivo, sin
   // límite de escrituras) — un mapa {key: lastShownAt}.
@@ -297,6 +297,13 @@
     const v = typeof data[SCHEMA_KEY] === "number" ? data[SCHEMA_KEY] : 0;
     if (v >= SCHEMA_VERSION) return;
     if (v < 1) await migrateLegacy();
+    // v3: el cooldown se keyaba mal (por el match) y se armaba al marcar, lo que
+    // suprimía el recordatorio. Limpiamos el mapa para arrancar de cero.
+    if (v < 3) {
+      await new Promise((resolve) =>
+        chrome.storage.local.remove(COOLDOWN_KEY, () => resolve())
+      );
+    }
     await syncSet({ [SCHEMA_KEY]: SCHEMA_VERSION });
   }
 

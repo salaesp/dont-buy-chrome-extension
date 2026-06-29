@@ -477,6 +477,7 @@
     show,
     showCart,
     showBlockOverlay,
+    showTopReminder,
     clearOverlay,
     remove,
   };

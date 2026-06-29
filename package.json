@@ -1,6 +1,6 @@
 {
   "name": "dont-buy-chrome-extension",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Extensión de Chrome (MV3) que detecta productos y te avisa que quizá no los necesitás.",
   "scripts": {

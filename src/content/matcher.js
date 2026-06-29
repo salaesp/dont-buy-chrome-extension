@@ -142,11 +142,14 @@
     // centrado. Robusto entre sitios (no depende del layout). "unknown"
     // (producto nuevo) usa el cartel suave arriba-centrado.
     if (verdict.status === "block") {
-      // Anti-fatiga: si ya mostramos el overlay de este producto hace < 2h, no
-      // lo tapamos de nuevo (badge ✕ sí, overlay no).
-      const key = (verdict.match && verdict.match.key) || signature.key;
+      // Anti-fatiga: si ya tapamos ESTA página hace < 2h, no la blureamos de
+      // nuevo. Pero igual mostramos la barrita-recordatorio arriba y mantenemos
+      // la ✕ en el ícono. Clave por producto VISTO (no el match), así un
+      // parecido no queda silenciado por haber visto otro de su familia.
+      const key = signature.key;
       const cd = await send({ type: "shouldCooldown", key });
       if (cd && cd.cooldown) {
+        Banner.showTopReminder();
         sendVerdict("block");
         return;
       }
@@ -171,7 +174,10 @@
             { onNeed },
             { confirmed: true }
           );
-          send({ type: "markShown", key: signature.key });
+          // OJO: NO armamos cooldown acá. Este cartel es confirmación de tu
+          // propia acción de marcar, no el recordatorio automático. Si armáramos
+          // el cooldown, la próxima visita (el primer "ya lo marcaste") quedaría
+          // suprimida 2h. El cooldown se arma recién en el overlay automático.
           sendVerdict("block");
         },
       });
