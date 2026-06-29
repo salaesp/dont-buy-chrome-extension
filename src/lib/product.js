@@ -212,7 +212,7 @@
   function resolveCurrency(priceText, currency) {
     if (currency) return String(currency).toUpperCase().trim();
     const t = String(priceText || "");
-    if (/US\$|\bUSD\b/i.test(t)) return "USD";
+    if (/US\s*\$|\bUSD\b/i.test(t)) return "USD";
     if (/€|\bEUR\b/i.test(t)) return "EUR";
     if (/£|\bGBP\b/i.test(t)) return "GBP";
     if (/\bARS\b/i.test(t)) return "ARS";

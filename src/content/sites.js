@@ -301,7 +301,11 @@
     /(^|\.)aliexpress\./i,
     /\/item\/\d+/,
     ['h1[data-pl="product-title"]', ".product-title-text", "h1"],
-    [".product-price-value", '[class*="price--current" i]', ".uniform-banner-box-price"]
+    [
+      '[class*="price-default--current--"]',
+      '[class*="price-default--currentWrap--"]',
+      ".product-price-value",
+    ]
   );
   const temu = storeRule(
     "temu",

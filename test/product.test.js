@@ -141,6 +141,7 @@ test("hostMatches: lista vacía => no corre en ningún lado", () => {
 test("parsePrice: formatos US/EU, símbolos y miles vs decimal", () => {
   assert.deepEqual(P.parsePrice("$11.99 USD", "USD"), { amount: 1199, currency: "USD" });
   assert.deepEqual(P.parsePrice("US$ 50", ""), { amount: 5000, currency: "USD" });
+  assert.deepEqual(P.parsePrice("US $36.92", ""), { amount: 3692, currency: "USD" });
   assert.deepEqual(P.parsePrice("€1.234,56", ""), { amount: 123456, currency: "EUR" });
   assert.deepEqual(P.parsePrice("ARS 1.500,00", "ARS"), { amount: 150000, currency: "ARS" });
   assert.deepEqual(P.parsePrice("19", ""), { amount: 1900, currency: "" });
