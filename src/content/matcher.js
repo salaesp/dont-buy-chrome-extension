@@ -11,6 +11,12 @@
 (function () {
   "use strict";
 
+  // Evita doble ejecución si el content script se inyecta dos veces en el mismo
+  // mundo aislado (p. ej. recarga de la extensión + navegación). Sin esto se
+  // podían ver dos carteles.
+  if (self.__dontBuyMatcherLoaded) return;
+  self.__dontBuyMatcherLoaded = true;
+
   const Product = self.DontBuyProduct;
   const Detector = self.DontBuyDetector;
   const Banner = self.DontBuyBanner;
@@ -203,11 +209,19 @@
   }
 
   // Evita correr dos veces en simultáneo y deja de reintentar cuando ya
-  // mostramos algo.
+  // mostramos algo. `running` corta el reentry: run() es async (await getState)
+  // y el poll dispara cada 600ms; sin este guard dos ticks entran antes de que
+  // el primero marque shown=true => cartel duplicado.
   let shown = false;
+  let running = false;
   async function tick() {
-    if (shown) return;
-    await run();
+    if (shown || running) return;
+    running = true;
+    try {
+      await run();
+    } finally {
+      running = false;
+    }
   }
 
   // SPA: el producto cambia sin recargar. Parchear history.pushState desde el

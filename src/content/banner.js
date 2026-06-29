@@ -112,23 +112,24 @@
   let topBarEl = null;
   let prevHtmlMarginTop = null;
 
+  // Las remociones borran por DOM (no solo la variable trackeada): si hubiera
+  // un nodo duplicado (doble inyección del content script, reinit, etc.), igual
+  // lo limpiamos. Evita carteles repetidos.
   function clearOverlay() {
-    if (overlayEl && overlayEl.parentNode) {
-      overlayEl.parentNode.removeChild(overlayEl);
-    }
+    document
+      .querySelectorAll("#" + HOST_ID + "-overlay")
+      .forEach((n) => n.remove());
     overlayEl = null;
   }
 
   // Saca solo el cartel de esquina (no el overlay de blur).
   function removeCard() {
-    if (hostEl && hostEl.parentNode) hostEl.parentNode.removeChild(hostEl);
+    document.querySelectorAll("#" + HOST_ID).forEach((n) => n.remove());
     hostEl = null;
   }
 
   function clearTopBar() {
-    if (topBarEl && topBarEl.parentNode) {
-      topBarEl.parentNode.removeChild(topBarEl);
-    }
+    document.querySelectorAll("[data-dont-buy-bar]").forEach((n) => n.remove());
     topBarEl = null;
     if (prevHtmlMarginTop !== null) {
       document.documentElement.style.marginTop = prevHtmlMarginTop;
