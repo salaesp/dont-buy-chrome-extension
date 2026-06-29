@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Don't Buy</title>
+    <style>
+      :root {
+        --bg: #fafafa; --fg: #18181b; --muted: #52525b;
+        --card: #fff; --card-border: #ececef; --teal: #14b8a6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #18181b; --fg: #f4f4f5; --muted: #a1a1aa;
+          --card: #232326; --card-border: #2e2e32;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100vh; display: flex; align-items: center;
+        justify-content: center; padding: 24px;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        color: var(--fg); background: var(--bg);
+      }
+      .card {
+        width: 100%; max-width: 460px; background: var(--card);
+        border: 1px solid var(--card-border); border-radius: 18px;
+        padding: 32px 28px; text-align: center;
+      }
+      .logo svg { width: 56px; height: 56px; }
+      h1 { font-size: 21px; margin: 14px 0 8px; }
+      p.lead { color: var(--muted); font-size: 15px; line-height: 1.5; margin: 0 0 22px; }
+      ol { text-align: left; margin: 0 0 24px; padding: 0; list-style: none; }
+      ol li {
+        display: flex; gap: 10px; align-items: flex-start;
+        font-size: 14px; line-height: 1.45; margin-bottom: 12px;
+      }
+      ol li .n {
+        flex: none; width: 22px; height: 22px; border-radius: 50%;
+        background: var(--teal); color: #fff; font-size: 12px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center; margin-top: 1px;
+      }
+      button {
+        background: var(--teal); color: #fff; border: none; border-radius: 10px;
+        padding: 11px 22px; font-size: 14px; font-weight: 600; cursor: pointer;
+      }
+      button:hover { filter: brightness(.97); }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <span class="logo" aria-hidden="true">
+        <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="37,6 91,6 122,37 122,91 91,122 37,122 6,91 6,37" fill="#14b8a6" />
+          <text x="64" y="90" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="76" fill="#fff">$</text>
+        </svg>
+      </span>
+      <h1 data-i18n="welcomeTitle">¡Listo! Don't Buy está activo</h1>
+      <p class="lead" data-i18n="welcomeBody"></p>
+      <ol>
+        <li><span class="n">1</span><span data-i18n="welcomeStep1"></span></li>
+        <li><span class="n">2</span><span data-i18n="welcomeStep2"></span></li>
+        <li><span class="n">3</span><span data-i18n="welcomeStep3"></span></li>
+      </ol>
+      <button id="close" data-i18n="welcomeClose">Entendido</button>
+    </main>
+    <script src="welcome.js"></script>
+  </body>
+</html>

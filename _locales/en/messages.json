@@ -49,6 +49,22 @@
   "statDont": { "message": "Don't need" },
   "statNeed": { "message": "Do need" },
   "statBrakes": { "message": "Stops" },
+  "statSaved": { "message": "Saved" },
+  "currencyUnknown": { "message": "?" },
+  "cheapestSeen": { "message": "Cheapest seen: $1" },
+  "cheapestGo": { "message": "go →" },
+  "welcomeTitle": { "message": "Done! Don't Buy is on" },
+  "welcomeBody": {
+    "message": "When you land on a product page, we remind you of what you already decided you don't need. It's on across all sites."
+  },
+  "welcomeStep1": { "message": "You view a product → we warn you before buying." },
+  "welcomeStep2": {
+    "message": "You mark \"don't need it\" → next time we remind you."
+  },
+  "welcomeStep3": {
+    "message": "From the extension icon you can disable any site."
+  },
+  "welcomeClose": { "message": "Got it" },
   "manageLists": { "message": "Manage my lists →" },
 
   "optIntro": {

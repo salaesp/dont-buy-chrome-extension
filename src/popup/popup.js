@@ -28,6 +28,8 @@
 
   const productRowEl = document.getElementById("product-row");
   const removeFromListEl = document.getElementById("remove-from-list");
+  const savedRowEl = document.getElementById("saved-row");
+  const savedTotalEl = document.getElementById("saved-total");
 
   let currentHost = "";
   let currentTabId = null;
@@ -101,6 +103,20 @@
     toggleSiteEl.dataset.off = off ? "1" : "0";
   }
 
+  // Ahorro acumulado por moneda ("$120.00 USD · €40.00 EUR"). Oculto si no hay.
+  function renderSaved(saved) {
+    const entries = Object.entries(saved || {}).filter(([, c]) => c > 0);
+    if (!entries.length || !Product) {
+      savedRowEl.hidden = true;
+      return;
+    }
+    const unknown = msg("currencyUnknown");
+    savedTotalEl.textContent = entries
+      .map(([cur, c]) => Product.formatMoney(c, cur || unknown))
+      .join(" · ");
+    savedRowEl.hidden = false;
+  }
+
   async function render() {
     const res = await send({ type: "getState" });
     if (!res.ok) return;
@@ -108,6 +124,7 @@
     blockCountEl.textContent = (res.blocklist || []).length;
     allowCountEl.textContent = (res.allowlist || []).length;
     blockedTotalEl.textContent = (res.stats && res.stats.blocked) || 0;
+    renderSaved(res.stats && res.stats.saved);
     renderSite(res.dismissed || []);
   }
 

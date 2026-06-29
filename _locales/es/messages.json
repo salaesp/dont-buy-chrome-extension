@@ -49,6 +49,22 @@
   "statDont": { "message": "No necesito" },
   "statNeed": { "message": "Sí necesito" },
   "statBrakes": { "message": "Frenos" },
+  "statSaved": { "message": "Ahorrado" },
+  "currencyUnknown": { "message": "?" },
+  "cheapestSeen": { "message": "Más barato visto: $1" },
+  "cheapestGo": { "message": "ir →" },
+  "welcomeTitle": { "message": "¡Listo! Don't Buy está activo" },
+  "welcomeBody": {
+    "message": "Cuando entres a la página de un producto, te recordamos lo que ya decidiste que no necesitás. Viene activo en todos los sitios."
+  },
+  "welcomeStep1": { "message": "Mirás un producto → te avisamos antes de comprar." },
+  "welcomeStep2": {
+    "message": "Marcás «no lo necesito» → la próxima vez te lo recordamos."
+  },
+  "welcomeStep3": {
+    "message": "Desde el ícono de la extensión podés desactivar cualquier sitio."
+  },
+  "welcomeClose": { "message": "Entendido" },
   "manageLists": { "message": "Gestionar mis listas →" },
 
   "optIntro": {

@@ -65,6 +65,29 @@
       info.appendChild(name);
       info.appendChild(meta);
 
+      // "Lo quiero" con historial: mostrar el más barato visto + link para ir.
+      const P = window.DontBuyProduct;
+      if (listName === "allowlist" && P && P.cheapestSeen) {
+        const cheap = P.cheapestSeen(e.history || []);
+        if (cheap) {
+          const c = document.createElement("div");
+          c.className = "cheapest";
+          const label = msg("cheapestSeen").replace(
+            "$1",
+            P.formatMoney(cheap.amount, cheap.currency)
+          );
+          if (cheap.url) {
+            c.innerHTML =
+              escapeHtml(label) +
+              ` <a href="${escapeHtml(cheap.url)}" target="_blank" rel="noopener">` +
+              `${escapeHtml(msg("cheapestGo"))}</a>`;
+          } else {
+            c.textContent = label;
+          }
+          info.appendChild(c);
+        }
+      }
+
       const btn = document.createElement("button");
       btn.className = "remove";
       btn.title = msg("removeTitle");

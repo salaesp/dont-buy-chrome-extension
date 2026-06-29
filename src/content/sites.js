@@ -1,5 +1,6 @@
 /*
- * sites.js — reglas específicas por tienda (Amazon, eBay, MercadoLibre, Steam).
+ * sites.js — reglas específicas por tienda (Amazon, eBay, MercadoLibre, Steam,
+ * + best-effort: AliExpress, Temu, Shein, Walmart, Etsy, Falabella, Coppel).
  * Corren ANTES que la heurística genérica del detector: son más fiables para
  * saber que estamos en una ficha de producto y para extraer título, precio y
  * categoría limpios. Si la regla no reconoce la página (no es producto),
@@ -23,6 +24,15 @@
       if (t) return t;
     }
     return "";
+  }
+
+  // Lee un <meta property|name="...">. Sirve de respaldo cuando los selectores
+  // específicos fallan (la mayoría de las tiendas traen og:title/og:price).
+  function metaProp(prop) {
+    const el = document.querySelector(
+      `meta[property="${prop}"], meta[name="${prop}"]`
+    );
+    return el ? (el.getAttribute("content") || "").trim() : "";
   }
 
   // Junta las migas del medio (saca "Inicio/Home" y el propio producto).
@@ -244,7 +254,111 @@
     },
   };
 
-  const RULES = [amazon, ebay, mercadolibre, steam];
+  // ---- Tiendas best-effort (AliExpress, Temu, Shein, Walmart, Etsy,
+  //      Falabella, Coppel) ----------------------------------------------------
+  // Selectores aproximados + respaldo a og:title/og:price. Gating: solo tratamos
+  // como ficha si la URL matchea el patrón de producto O og:type es "product";
+  // así, en home/listados de estas tiendas devolvemos null (sin falsos
+  // positivos) y NO corre el detector genérico (tienda conocida). Los selectores
+  // finos pueden requerir HTML real para afinarse.
+  const BREADCRUMB_SELS = [
+    'nav[aria-label*="bread" i] a',
+    '[class*="breadcrumb" i] a',
+    'ol[itemtype*="BreadcrumbList" i] a',
+  ];
+
+  function storeRule(name, hostRe, urlRe, titleSels, priceSels) {
+    return {
+      test: (h) => hostRe.test(h),
+      detect() {
+        const isProduct =
+          urlRe.test(location.pathname) ||
+          /product/i.test(metaProp("og:type"));
+        if (!isProduct) return null;
+        const title = firstText(titleSels) || metaProp("og:title");
+        if (!title) return null;
+        const priceText =
+          firstText(priceSels) ||
+          metaProp("product:price:amount") ||
+          metaProp("og:price:amount");
+        return {
+          title,
+          category: breadcrumbFrom(BREADCRUMB_SELS),
+          priceText,
+          currency:
+            metaProp("product:price:currency") ||
+            metaProp("og:price:currency") ||
+            "",
+          source: "site:" + name,
+          confidence: 0.9,
+        };
+      },
+    };
+  }
+
+  const aliexpress = storeRule(
+    "aliexpress",
+    /(^|\.)aliexpress\./i,
+    /\/item\/\d+/,
+    ['h1[data-pl="product-title"]', ".product-title-text", "h1"],
+    [".product-price-value", '[class*="price--current" i]', ".uniform-banner-box-price"]
+  );
+  const temu = storeRule(
+    "temu",
+    /(^|\.)temu\./i,
+    /-g-\d+|\/goods/,
+    ['[data-uniq-id="goods-title"]', "h1"],
+    ['[aria-label*="price" i]', '[class*="price" i]']
+  );
+  const shein = storeRule(
+    "shein",
+    /(^|\.)shein\./i,
+    /-p-\d+\.html/,
+    [".product-intro__head-name", "h1"],
+    [".product-intro__head-price .original", '[class*="price" i]']
+  );
+  const walmart = storeRule(
+    "walmart",
+    /(^|\.)walmart\./i,
+    /\/ip\//,
+    ['h1[itemprop="name"]', "#main-title", "h1"],
+    ['[itemprop="price"]', '[data-testid="price-wrap"] [aria-hidden="true"]']
+  );
+  const etsy = storeRule(
+    "etsy",
+    /(^|\.)etsy\./i,
+    /\/listing\/\d+/,
+    ["h1[data-buy-box-listing-title]", "h1"],
+    ['[data-buy-box-region="price"] .currency-value', 'p[data-selector="price-only"]']
+  );
+  const falabella = storeRule(
+    "falabella",
+    /(^|\.)falabella\./i,
+    /\/product\//,
+    [".product-name", 'h1[class*="name" i]', "h1"],
+    ["[data-internet-price]", '[class*="price" i]']
+  );
+  const coppel = storeRule(
+    "coppel",
+    /(^|\.)coppel\./i,
+    /\/producto\/|-pp\d|\/p\//,
+    ['[class*="title" i]', "h1"],
+    ['[itemprop="price"]', '[class*="price" i]']
+  );
+
+  const RULES = [
+    amazon,
+    ebay,
+    mercadolibre,
+    steam,
+    aliexpress,
+    temu,
+    shein,
+    walmart,
+    etsy,
+    falabella,
+    coppel,
+  ];
 
   /** ¿Hay una regla específica para este host? (tienda conocida) */
   function handles(host) {
