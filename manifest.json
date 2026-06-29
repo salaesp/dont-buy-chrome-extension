@@ -4,7 +4,7 @@
   "version": "0.2.1",
   "description": "__MSG_appDesc__",
   "default_locale": "en",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "unlimitedStorage", "activeTab"],
   "background": {
     "service_worker": "src/background/service-worker.js"
   },

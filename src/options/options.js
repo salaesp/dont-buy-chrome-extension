@@ -159,9 +159,16 @@
 
   applyI18n();
 
-  // Refresca si cambia el storage en otra pestaña/navegador.
-  chrome.storage.onChanged.addListener((_c, area) => {
-    if (area === "sync") load();
+  // Refresca si cambia el storage. Productos viven en local (fuente de verdad);
+  // settings/stats/hosts/dismissed en sync. Ignoramos escrituras del cooldown.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync") return load();
+    if (
+      area === "local" &&
+      Object.keys(changes).some((k) => k.startsWith("b:") || k.startsWith("a:"))
+    ) {
+      load();
+    }
   });
 
   load();
