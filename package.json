@@ -1,9 +1,16 @@
 {
   "name": "dont-buy-chrome-extension",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Extensión de Chrome (MV3) que detecta productos y te avisa que quizá no los necesitás.",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "lint": "eslint src test",
+    "format": "prettier --write \"src/**/*.{js,css,html}\" \"test/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.{js,css,html}\" \"test/**/*.js\""
+  },
+  "devDependencies": {
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0"
   }
 }
